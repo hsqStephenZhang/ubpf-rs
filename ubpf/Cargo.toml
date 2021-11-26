@@ -1,5 +1,5 @@
 [package]
-name = "ubpf-rs"
+name = "ubpf"
 version = "0.1.0"
 edition = "2021"
 

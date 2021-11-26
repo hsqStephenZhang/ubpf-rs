@@ -8,11 +8,16 @@ license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-
 [workspace]
 members = [
     "assembler",
-    "ubpf-rs",
+    "ubpf",
 ]
 
-[dependencies]
+[[bin]]
+name = "assembler"
+path ="assembler/src/main.rs"
+
+[[ubpf]]
+name = "ubpf"
+path ="ubpf/src/main.rs"
