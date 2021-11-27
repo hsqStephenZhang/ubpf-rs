@@ -85,13 +85,12 @@ lazy_static::lazy_static! {
     };
 }
 
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Instruction {
     pub op: u8,
     pub regs: u8,
-    pub offset: u16,
-    pub imm: u32,
+    pub offset: i16,
+    pub imm: i32,
 }
 
 impl Instruction {
@@ -100,16 +99,16 @@ impl Instruction {
         let mut regs = 0;
         let mut offset = 0;
         let mut imm = 0;
-        debug_assert!(bytes.len() == 8);
+        // debug_assert!(bytes.len() == 8);
 
         unsafe {
             let (mut src, _): (usize, usize) = mem::transmute(bytes);
             std::ptr::copy(src as *const u8, &mut op as *mut _ as _, 1);
-            src += 2;
+            src += 1;
             std::ptr::copy(src as *const u8, &mut regs as *mut _ as _, 1);
             src += 1;
             std::ptr::copy(src as *const u8, &mut offset as *mut _ as _, 2);
-            src += 1;
+            src += 2;
             std::ptr::copy(src as *const u8, &mut imm as *mut _ as _, 4);
         }
 

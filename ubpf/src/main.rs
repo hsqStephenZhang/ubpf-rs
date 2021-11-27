@@ -1,3 +1,18 @@
+use structopt::StructOpt;
+
+mod runtime;
+pub use runtime::*;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "example", about = "An example of StructOpt usage.")]
+struct Opt {
+    /// Activate debug mode
+    // short and long flags (-d, --debug) will be deduced from the field's name
+    #[structopt(short, long)]
+    debug: bool,
+}
+
 fn main() {
-    println!("Hello, world!");
+    let opt = Opt::from_args();
+    println!("{:?}", opt.debug);
 }

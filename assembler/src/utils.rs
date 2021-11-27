@@ -4,12 +4,12 @@ pub fn reg(reg: u8) -> String {
 }
 
 // immediate
-pub fn imm(reg: u32) -> String {
-    return format!("#{:X}", reg);
+pub fn imm(reg: i32) -> String {
+    return format!("{}", reg);
 }
 
 // memory
-pub fn memory(base: &str, off: u16) -> String {
+pub fn memory(base: &str, off: i16) -> String {
     if off != 0 {
         return format!("{}{}", base, offset(off));
     } else {
@@ -18,11 +18,6 @@ pub fn memory(base: &str, off: u16) -> String {
 }
 
 // operation
-pub fn offset(off: u16) -> String {
-    if off <= 32767 {
-        return format!("+{}", off);
-    } else {
-        let r= 65536u32 - off as u32;
-        return format!("-{}", r);
-    }
+pub fn offset(off: i16) -> String {
+    return format!("{}", off);
 }
