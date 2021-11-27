@@ -21,3 +21,6 @@ path ="assembler/src/main.rs"
 [[ubpf]]
 name = "ubpf"
 path ="ubpf/src/main.rs"
+
+[dependencies]
+lazy_static = "1.4.0"
