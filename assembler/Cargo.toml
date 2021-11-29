@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 lazy_static = "1.4.0"
+goblin = "0.4"
+thiserror = "1.0.30"

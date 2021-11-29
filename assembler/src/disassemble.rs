@@ -65,7 +65,7 @@ pub fn disassemble_one(raw: &[u8]) -> String {
                 }
             }
         }
-    } else if cls == class::EBPF_CLS_ALU || cls == class::EBPF_CLS_LDX || cls == class::EBPF_CLS_ST || cls == class::EBPF_CLS_STX {
+    } else if cls == class::EBPF_CLS_LD || cls == class::EBPF_CLS_LDX || cls == class::EBPF_CLS_ST || cls == class::EBPF_CLS_STX {
         let size = (ins.op >> 3) & 0x3; // 0x00011000
         let size_name = *SIZES.get(&size).unwrap();
         // let mode = (ins.op >> 5) & 0x7; // 0x11100000
@@ -119,6 +119,7 @@ pub fn disassemble_one(raw: &[u8]) -> String {
             _ => return format!("unknown instruction {}", ins.op),
         }
     } else {
+        dbg!(cls);
         unreachable!()
     }
 }
