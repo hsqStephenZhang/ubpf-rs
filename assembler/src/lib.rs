@@ -1,17 +1,20 @@
+mod asm_parser;
 #[allow(dead_code)]
 mod assemble;
 mod consts;
 mod disassemble;
-mod utils;
 mod error;
+mod utils;
 
 use std::{collections::HashMap, mem};
 
 // pub use assemble::*;
-pub use consts::*;
-pub use disassemble::*;
+pub use asm_parser::parse;
+pub use assemble::{locate_function, lookup_function, lookup_section};
+pub use consts::{alu, class, op};
+pub use disassemble::{disassemble, disassemble_one};
+pub use error::ElfError;
 pub use utils::*;
-pub use error::*;
 
 lazy_static::lazy_static! {
     pub static ref CLASS: HashMap<u8, &'static str> = {
