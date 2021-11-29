@@ -9,7 +9,6 @@ mod utils;
 use std::{collections::HashMap, mem};
 
 // pub use assemble::*;
-pub use asm_parser::parse;
 pub use assemble::{locate_function, lookup_function, lookup_section};
 pub use consts::{alu, class, op};
 pub use disassemble::{disassemble, disassemble_one};

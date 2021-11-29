@@ -1,10 +1,14 @@
-use combine::char::{alpha_num, char, digit, hex_digit, spaces, string};
-use combine::combinator::or;
-use combine::primitives::{Error, Info};
-use combine::{
-    between, eof, many, many1, one_of, optional, parser, sep_by, ParseError, ParseResult, Parser,
-    State, Stream,
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alphanumeric1, digit1, hex_digit1, space0},
+    combinator::opt,
+    multi::{separated_list0, separated_list1},
+    sequence::{delimited, tuple},
+    IResult, Parser,
 };
+
+// combine::stream::state::Stream
 
 /// Operand of an instruction.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -15,8 +19,6 @@ pub enum Operand {
     Integer(i64),
     /// Register number and offset.
     Memory(i64, i64),
-    /// Used for pattern matching.
-    Nil,
 }
 
 /// Parsed instruction.
@@ -25,286 +27,299 @@ pub struct Instruction {
     /// Instruction name.
     pub name: String,
     /// Operands.
-    pub operands: Vec<Operand>,
+    pub operands: Option<Vec<Operand>>,
 }
 
-fn ident<I>(input: I) -> ParseResult<String, I>
-where
-    I: Stream<Item = char>,
-{
-    many1(alpha_num()).parse_stream(input)
-}
-
-fn integer<I>(input: I) -> ParseResult<i64, I>
-where
-    I: Stream<Item = char>,
-{
-    let sign = optional(one_of("-+".chars())).map(|x| match x {
-        Some('-') => -1,
-        _ => 1,
-    });
-    let hex = string("0x")
-        .with(many1(hex_digit()))
-        .map(|x: String| u64::from_str_radix(&x, 16).unwrap() as i64);
-    let dec = many1(digit()).map(|x: String| i64::from_str_radix(&x, 10).unwrap());
-    (sign, or(hex, dec)).map(|(s, x)| s * x).parse_stream(input)
-}
-
-fn register<I>(input: I) -> ParseResult<i64, I>
-where
-    I: Stream<Item = char>,
-{
-    char('r')
-        .with(many1(digit()))
-        .map(|x: String| i64::from_str_radix(&x, 10).unwrap())
-        .parse_stream(input)
-}
-
-fn operand<I>(input: I) -> ParseResult<Operand, I>
-where
-    I: Stream<Item = char>,
-{
-    let register_operand = parser(register).map(Operand::Register);
-    let immediate = parser(integer).map(Operand::Integer);
-    let memory = between(
-        char('['),
-        char(']'),
-        (parser(register), optional(parser(integer))),
-    )
-    .map(|t| Operand::Memory(t.0, t.1.unwrap_or(0)));
-    register_operand
-        .or(immediate)
-        .or(memory)
-        .parse_stream(input)
-}
-
-fn instruction<I>(input: I) -> ParseResult<Instruction, I>
-where
-    I: Stream<Item = char>,
-{
-    let operands = sep_by(parser(operand), char(',').skip(spaces()));
-    (parser(ident).skip(spaces()), operands, spaces())
-        .map(|t| Instruction {
-            name: t.0,
-            operands: t.1,
-        })
-        .parse_stream(input)
-}
-
-fn format_info(info: &Info<char, &str>) -> String {
-    match *info {
-        Info::Token(x) => format!("{:?}", x),
-        Info::Range(x) => format!("{:?}", x),
-        Info::Owned(ref x) => x.clone(),
-        Info::Borrowed(x) => x.to_string(),
+impl Instruction {
+    pub fn new(name: String, operands: Option<Vec<Operand>>) -> Instruction {
+        Self { name, operands }
     }
 }
 
-fn format_error(error: &Error<char, &str>) -> String {
-    match *error {
-        Error::Unexpected(ref x) => format!("unexpected {}", format_info(x)),
-        Error::Expected(ref x) => format!("expected {}", format_info(x)),
-        Error::Message(ref x) => format_info(x),
-        Error::Other(ref x) => format!("{:?}", x),
-    }
+pub fn ident(input: &str) -> IResult<&str, &str> {
+    alphanumeric1(input)
 }
 
-fn format_parse_error(parse_error: &ParseError<State<&str>>) -> String {
-    format!(
-        "Parse error at line {} column {}: {}",
-        parse_error.position.line,
-        parse_error.position.column,
-        parse_error
-            .errors
-            .iter()
-            .map(format_error)
-            .collect::<Vec<String>>()
-            .join(", ")
-    )
+pub fn integer(input: &str) -> IResult<&str, i64> {
+    let sign_inner = alt((tag("+"), tag("-")));
+    let sign = opt(sign_inner);
+
+    let a = tuple((tag("0x"), hex_digit1));
+    let b = tuple((tag(""), digit1));
+    let number = alt((a, b));
+
+    let mut pattern = tuple((sign, number));
+    pattern(input).map(|(left, (s, (prefix, d)))| {
+        let is_signed = match s {
+            Some("-") => -1,
+            _ => 1,
+        };
+        let val = if prefix.len() == 0 {
+            u64::from_str_radix(d, 10).unwrap()
+        } else {
+            u64::from_str_radix(d, 16).unwrap()
+        };
+        let val = val as i64 * is_signed;
+        (left, val)
+    })
 }
 
-/// Parse a string into a list of instructions.
-///
-/// The instructions are not validated and may have invalid names and operand types.
-pub fn parse(input: &str) -> Result<Vec<Instruction>, String> {
-    match spaces()
-        .with(many(parser(instruction)).skip(eof()))
-        .parse(State::new(input))
-    {
-        Ok((insts, _)) => Ok(insts),
-        Err(err) => Err(format_parse_error(&err)),
-    }
+pub fn register(input: &str) -> IResult<&str, i64> {
+    let mut pattern = tuple((tag("r"), digit1));
+    pattern(input).map(|(next_input, (_, d))| (next_input, i64::from_str_radix(d, 10).unwrap()))
 }
+
+pub fn operand(input: &str) -> IResult<&str, Operand> {
+    let register_operand = register.map(Operand::Register);
+    let immediate = integer.map(Operand::Integer);
+    //(u64, Option<i64>)
+    let memory = delimited(tag("["), tuple((register, opt(integer))), tag("]"))
+        .map(|(a, b)| Operand::Memory(a, b.unwrap_or(0)));
+    let mut pattern = register_operand.or(immediate).or(memory);
+
+    let r = pattern.parse(input);
+    r
+}
+
+pub fn operands(s: &str) -> IResult<&str, Vec<Operand>> {
+    separated_list1(tag(","), tuple((space0, operand)))(s)
+        .map(|(next_input, s)| (next_input, s.into_iter().map(|v| v.1).collect()))
+}
+
+pub fn instruction(input: &str) -> IResult<&str, Instruction> {
+    let mut pattern = tuple((space0, ident, space0, opt(operands), space0));
+    // (&str, &str, &str, asm_parser::Operand, &str))
+    pattern(input)
+        .map(|(next_input, (_, name, _, ops, _))| (next_input, Instruction::new(name.into(), ops)))
+}
+
+pub fn instructions(input: &str) -> IResult<&str, Vec<Instruction>> {
+    separated_list0(tag("\n"), instruction).parse(input)
+}
+
+// /// Parse a string into a list of instructions.
+// ///
+// /// The instructions are not validated and may have invalid names and operand types.
+// pub fn parse(input: &str) -> Result<Vec<Instruction>, String> {
+//     match spaces()
+//         .with(many(parser(instruction)).skip(eof()))
+//         .parse(State::new(input))
+//     {
+//         Ok((insts, _)) => Ok(insts),
+//         Err(err) => Err(format_parse_error(&err)),
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
-    use super::{ident, instruction, integer, operand, parse, register, Instruction, Operand};
-    use combine::{parser, Parser};
+    use nom::{character::complete::space0, multi::separated_list1};
 
-    // Unit tests for the different kinds of parsers.
+    use super::*;
 
     #[test]
     fn test_ident() {
-        assert_eq!(parser(ident).parse("nop"), Ok(("nop".to_string(), "")));
-        assert_eq!(parser(ident).parse("add32"), Ok(("add32".to_string(), "")));
-        assert_eq!(
-            parser(ident).parse("add32*"),
-            Ok(("add32".to_string(), "*"))
-        );
+        let s = "mov a,1";
+        let r = ident(s);
+        assert_eq!(r, Ok((" a,1", "mov")));
     }
 
     #[test]
-    fn test_integer() {
-        assert_eq!(parser(integer).parse("0"), Ok((0, "")));
-        // assert_eq!(parser(integer).parse("42"), Ok((42, "")));
-        // assert_eq!(parser(integer).parse("+42"), Ok((42, "")));
-        // assert_eq!(parser(integer).parse("-42"), Ok((-42, "")));
-        // assert_eq!(parser(integer).parse("0x0"), Ok((0, "")));
-        // assert_eq!(
-        //     parser(integer).parse("0x123456789abcdef0"),
-        //     Ok((0x123456789abcdef0, ""))
-        // );
-        // assert_eq!(parser(integer).parse("-0x1f"), Ok((-31, "")));
+    fn test_digit() {
+        // let mut pattern = hex_digit1;
+        // let r: IResult<&str, u64> =
+        //     pattern("0x1abcLLL").map(|r| (r.0, u64::from_str_radix(r.1, 16).unwrap()));
+        // println!("{:?}", r);
+
+        // let mut pattern = digit1;
+        // let r: IResult<&str, u64> =
+        //     pattern("123LLL").map(|r| (r.0, u64::from_str_radix(r.1, 16).unwrap()));
+        // println!("{:?}", r);
+
+        // let sign_inner = alt((tag("+"), tag("-")));
+        // let sign = opt(sign_inner);
+
+        // let a = tuple((tag("0x"), hex_digit1));
+        // let b = tuple((tag(""), digit1));
+        // let mut number = alt((a, b));
+
+        // let mut pattern = tuple((sign, number));
+        // //(s, (left, (prefix, d)))
+        // // (&str, (Option<&str>, (&str, &str)))
+        // let r: IResult<&str, i64> = pattern("+1234").map(|(left, (s, (prefix, d)))| {
+        //     let is_signed = match s {
+        //         // Some("-") => -1,
+        //         _ => 1,
+        //     };
+        //     let val = if prefix.len() == 0 {
+        //         u64::from_str_radix(d, 10).unwrap()
+        //     } else {
+        //         u64::from_str_radix(d, 16).unwrap()
+        //     };
+        //     let val = val as i64 * is_signed;
+        //     (left, val)
+        // });
+        // println!("{:?}", r);
+
+        let val = integer("0x1abcLLL").unwrap();
+        println!("{:?}", val.1);
+        assert_eq!(val.1, 0x1abc);
+        assert_eq!(val.0, "LLL");
+        let val = integer("123").unwrap();
+        println!("{:?}", val.1);
+        assert_eq!(val.1, 123);
     }
 
     #[test]
     fn test_register() {
-        assert_eq!(parser(register).parse("r0"), Ok((0, "")));
-        assert_eq!(parser(register).parse("r15"), Ok((15, "")));
+        let val = register("r10").unwrap();
+        assert_eq!(val.1, 10);
+        assert_eq!(val.0, "");
     }
 
-    // #[test]
-    // fn test_operand() {
-    //     assert_eq!(parser(operand).parse("r0"), Ok((Operand::Register(0), "")));
-    //     assert_eq!(
-    //         parser(operand).parse("r15"),
-    //         Ok((Operand::Register(15), ""))
-    //     );
-    //     assert_eq!(parser(operand).parse("0"), Ok((Operand::Integer(0), "")));
-    //     assert_eq!(parser(operand).parse("42"), Ok((Operand::Integer(42), "")));
-    //     assert_eq!(
-    //         parser(operand).parse("[r1]"),
-    //         Ok((Operand::Memory(1, 0), ""))
-    //     );
-    //     assert_eq!(
-    //         parser(operand).parse("[r3+5]"),
-    //         Ok((Operand::Memory(3, 5), ""))
-    //     );
-    //     assert_eq!(
-    //         parser(operand).parse("[r3+0x1f]"),
-    //         Ok((Operand::Memory(3, 31), ""))
-    //     );
-    //     assert_eq!(
-    //         parser(operand).parse("[r3-0x1f]"),
-    //         Ok((Operand::Memory(3, -31), ""))
-    //     );
-    // }
+    #[test]
+    fn test_operand() {
+        let val = operand("r10").unwrap();
+        assert_eq!(val.1, Operand::Register(10));
+
+        let val = operand("123").unwrap();
+        assert_eq!(val.1, Operand::Integer(123));
+
+        let val = operand("[r10]").unwrap();
+        assert_eq!(val.1, Operand::Memory(10, 0));
+
+        let val = operand("[r10+5]").unwrap();
+        assert_eq!(val.1, Operand::Memory(10, 5));
+
+        let val = operand("[r10-5]").unwrap();
+        assert_eq!(val.1, Operand::Memory(10, -5));
+    }
 
     #[test]
-    fn test_instruction() {
+    fn test_operands() {
+        fn parser(s: &str) -> IResult<&str, Vec<Operand>> {
+            separated_list1(tag(","), tuple((space0, operand)))(s)
+                .map(|(next_input, s)| (next_input, s.into_iter().map(|v| v.1).collect()))
+        }
+
         assert_eq!(
-            parser(instruction).parse("exit"),
+            parser("1, 2, 3"),
             Ok((
+                "",
+                vec![
+                    Operand::Integer(1,),
+                    Operand::Integer(2),
+                    Operand::Integer(3)
+                ]
+            ))
+        );
+    }
+
+    #[test]
+    fn test_instructions() {
+        assert_eq!(
+            instruction.parse("exit"),
+            Ok((
+                "",
                 Instruction {
                     name: "exit".to_string(),
-                    operands: vec![],
+                    operands: None,
                 },
-                ""
             ))
         );
 
         assert_eq!(
-            parser(instruction).parse("call 2"),
+            instruction.parse("call 2"),
             Ok((
+                "",
                 Instruction {
                     name: "call".to_string(),
-                    operands: vec![Operand::Integer(2)],
+                    operands: Some(vec![Operand::Integer(2)]),
                 },
-                ""
             ))
         );
 
         assert_eq!(
-            parser(instruction).parse("addi r1, 2"),
+            instruction.parse("addi r1, 2"),
             Ok((
+                "",
                 Instruction {
                     name: "addi".to_string(),
-                    operands: vec![Operand::Register(1), Operand::Integer(2)],
+                    operands: Some(vec![Operand::Register(1), Operand::Integer(2)]),
                 },
-                ""
             ))
         );
 
         assert_eq!(
-            parser(instruction).parse("ldxb r2, [r1+12]"),
+            instruction.parse("ldxb r2, [r1+12]"),
             Ok((
+                "",
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Memory(1, 12)],
+                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 12)]),
                 },
-                ""
             ))
         );
 
         assert_eq!(
-            parser(instruction).parse("lsh r3, 0x8"),
+            instruction.parse("lsh r3, 0x8"),
             Ok((
+                "",
                 Instruction {
                     name: "lsh".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(8)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(8)]),
                 },
-                ""
             ))
         );
 
         assert_eq!(
-            parser(instruction).parse("jne r3, 0x8, +37"),
+            instruction.parse("jne r3, 0x8, +37"),
             Ok((
+                "",
                 Instruction {
                     name: "jne".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(3),
                         Operand::Integer(8),
                         Operand::Integer(37)
-                    ],
+                    ]),
                 },
-                ""
             ))
         );
 
         // Whitespace between operands is optional.
         assert_eq!(
-            parser(instruction).parse("jne r3,0x8,+37"),
+            instruction.parse("jne r3,0x8,+37"),
             Ok((
+                "",
                 Instruction {
                     name: "jne".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(3),
                         Operand::Integer(8),
                         Operand::Integer(37)
-                    ],
+                    ]),
                 },
-                ""
             ))
         );
     }
 
-    // Other unit tests: try to parse various set of instructions.
-
     #[test]
     fn test_empty() {
-        assert_eq!(parse(""), Ok(vec![]));
+        assert_eq!(instructions(""), Ok(("", vec![])));
     }
 
     #[test]
     fn test_exit() {
         // No operands.
         assert_eq!(
-            parse("exit"),
-            Ok(vec![Instruction {
-                name: "exit".to_string(),
-                operands: vec![],
-            }])
+            instructions("exit"),
+            Ok((
+                "",
+                vec![Instruction {
+                    name: "exit".to_string(),
+                    operands: None,
+                }]
+            ))
         );
     }
 
@@ -312,11 +327,14 @@ mod tests {
     fn test_lsh() {
         // Register and immediate operands.
         assert_eq!(
-            parse("lsh r3, 0x20"),
-            Ok(vec![Instruction {
-                name: "lsh".to_string(),
-                operands: vec![Operand::Register(3), Operand::Integer(0x20)],
-            }])
+            instructions("lsh r3, 0x20"),
+            Ok((
+                "",
+                vec![Instruction {
+                    name: "lsh".to_string(),
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(0x20)]),
+                }]
+            ))
         );
     }
 
@@ -324,11 +342,14 @@ mod tests {
     fn test_ja() {
         // Jump offset operand.
         assert_eq!(
-            parse("ja +1"),
-            Ok(vec![Instruction {
-                name: "ja".to_string(),
-                operands: vec![Operand::Integer(1)],
-            }])
+            instructions("ja +1"),
+            Ok((
+                "",
+                vec![Instruction {
+                    name: "ja".to_string(),
+                    operands: Some(vec![Operand::Integer(1)]),
+                }]
+            ))
         );
     }
 
@@ -336,11 +357,14 @@ mod tests {
     fn test_ldxh() {
         // Register and memory operands.
         assert_eq!(
-            parse("ldxh r4, [r1+12]"),
-            Ok(vec![Instruction {
-                name: "ldxh".to_string(),
-                operands: vec![Operand::Register(4), Operand::Memory(1, 12)],
-            }])
+            instructions("ldxh r4, [r1+12]"),
+            Ok((
+                "",
+                vec![Instruction {
+                    name: "ldxh".to_string(),
+                    operands: Some(vec![Operand::Register(4), Operand::Memory(1, 12)]),
+                }]
+            ))
         );
     }
 
@@ -393,254 +417,216 @@ arsh r3, 0x20
 jsgt r2, r3, -18
 ja +1
 mov r0, 0x1
-exit
-";
+exit";
 
         assert_eq!(
-            parse(src),
-            Ok(vec![
+            instructions(src),
+            Ok(("",vec![
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Memory(1, 12)],
+                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 12)]),
                 },
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Memory(1, 13)],
+                    operands: Some(vec![Operand::Register(3), Operand::Memory(1, 13)]),
                 },
                 Instruction {
                     name: "lsh".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(8)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(8)]),
                 },
                 Instruction {
                     name: "or".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Register(2)],
+                    operands: Some(vec![Operand::Register(3), Operand::Register(2)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(0), Operand::Integer(0)],
+                    operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
                 },
                 Instruction {
                     name: "jne".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(3),
                         Operand::Integer(8),
                         Operand::Integer(37)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Memory(1, 23)],
+                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 23)]),
                 },
                 Instruction {
                     name: "jne".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(2),
                         Operand::Integer(6),
                         Operand::Integer(35)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Memory(1, 14)],
+                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 14)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(1), Operand::Integer(14)],
+                    operands: Some(vec![Operand::Register(1), Operand::Integer(14)]),
                 },
                 Instruction {
                     name: "and".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Integer(15)],
+                    operands: Some(vec![Operand::Register(2), Operand::Integer(15)]),
                 },
                 Instruction {
                     name: "lsh".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Integer(2)],
+                    operands: Some(vec![Operand::Register(2), Operand::Integer(2)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(1), Operand::Register(2)],
+                    operands: Some(vec![Operand::Register(1), Operand::Register(2)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(0), Operand::Integer(0)],
+                    operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
                 },
                 Instruction {
                     name: "ldxh".to_string(),
-                    operands: vec![Operand::Register(4), Operand::Memory(1, 12)],
+                    operands: Some(vec![Operand::Register(4), Operand::Memory(1, 12)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(1), Operand::Integer(20)],
+                    operands: Some(vec![Operand::Register(1), Operand::Integer(20)]),
                 },
                 Instruction {
                     name: "rsh".to_string(),
-                    operands: vec![Operand::Register(4), Operand::Integer(2)],
+                    operands: Some(vec![Operand::Register(4), Operand::Integer(2)]),
                 },
                 Instruction {
                     name: "and".to_string(),
-                    operands: vec![Operand::Register(4), Operand::Integer(60)],
+                    operands: Some(vec![Operand::Register(4), Operand::Integer(60)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Register(4)],
+                    operands: Some(vec![Operand::Register(2), Operand::Register(4)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(2), Operand::Integer(4294967276)],
+                    operands: Some(vec![Operand::Register(2), Operand::Integer(4294967276)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(5), Operand::Integer(21)],
+                    operands: Some(vec![Operand::Register(5), Operand::Integer(21)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(0)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(0)]),
                 },
                 Instruction {
                     name: "jgt".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(5),
                         Operand::Register(4),
                         Operand::Integer(20)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(5), Operand::Register(3)],
+                    operands: Some(vec![Operand::Register(5), Operand::Register(3)]),
                 },
                 Instruction {
                     name: "lsh".to_string(),
-                    operands: vec![Operand::Register(5), Operand::Integer(32)],
+                    operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
                 },
                 Instruction {
                     name: "arsh".to_string(),
-                    operands: vec![Operand::Register(5), Operand::Integer(32)],
+                    operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(4), Operand::Register(1)],
+                    operands: Some(vec![Operand::Register(4), Operand::Register(1)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(4), Operand::Register(5)],
+                    operands: Some(vec![Operand::Register(4), Operand::Register(5)]),
                 },
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(5), Operand::Memory(4, 0)],
+                    operands: Some(vec![Operand::Register(5), Operand::Memory(4, 0)]),
                 },
                 Instruction {
                     name: "jeq".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(5),
                         Operand::Integer(1),
                         Operand::Integer(4)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "jeq".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(5),
                         Operand::Integer(0),
                         Operand::Integer(12)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(6), Operand::Register(3)],
+                    operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
                 },
                 Instruction {
                     name: "jeq".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(5),
                         Operand::Integer(5),
                         Operand::Integer(9)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "ja".to_string(),
-                    operands: vec![Operand::Integer(2)],
+                    operands: Some(vec![Operand::Integer(2)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(1)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(1)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(6), Operand::Register(3)],
+                    operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
                 },
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Memory(4, 1)],
+                    operands: Some(vec![Operand::Register(3), Operand::Memory(4, 1)]),
                 },
                 Instruction {
                     name: "add".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Register(6)],
+                    operands: Some(vec![Operand::Register(3), Operand::Register(6)]),
                 },
                 Instruction {
                     name: "lsh".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(32)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
                 },
                 Instruction {
                     name: "arsh".to_string(),
-                    operands: vec![Operand::Register(3), Operand::Integer(32)],
+                    operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
                 },
                 Instruction {
                     name: "jsgt".to_string(),
-                    operands: vec![
+                    operands: Some(vec![
                         Operand::Register(2),
                         Operand::Register(3),
                         Operand::Integer(-18)
-                    ],
+                    ]),
                 },
                 Instruction {
                     name: "ja".to_string(),
-                    operands: vec![Operand::Integer(1)],
+                    operands: Some(vec![Operand::Integer(1)]),
                 },
                 Instruction {
                     name: "mov".to_string(),
-                    operands: vec![Operand::Register(0), Operand::Integer(1)],
+                    operands: Some(vec![Operand::Register(0), Operand::Integer(1)]),
                 },
                 Instruction {
                     name: "exit".to_string(),
-                    operands: vec![],
+                    operands: None,
                 }
-            ])
-        );
-    }
-
-    #[test]
-    fn test_error_eof() {
-        // Unexpected end of input in a register name.
-        assert_eq!(
-            parse("lsh r"),
-            Err(
-                "Parse error at line 1 column 6: unexpected end of input, expected digit"
-                    .to_string()
-            )
-        );
-    }
-
-    #[test]
-    fn test_error_unexpected_character() {
-        // Unexpected character at end of input.
-        assert_eq!(
-            parse("exit\n^"),
-            Err(
-                "Parse error at line 2 column 1: unexpected '^', expected end of input".to_string()
-            )
-        );
-    }
-
-    #[test]
-    fn test_initial_whitespace() {
-        assert_eq!(
-            parse(
-                " 
-                          exit"
-            ),
-            Ok(vec![Instruction {
-                name: "exit".to_string(),
-                operands: vec![],
-            }])
+            ]))
         );
     }
 }
