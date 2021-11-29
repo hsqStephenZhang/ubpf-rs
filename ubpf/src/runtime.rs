@@ -1,9 +1,11 @@
 use assembler::Instruction;
 
+#[allow(dead_code)]
 const MB: usize = 1024 * 1024;
+const KB: usize = 1024;
 
-const STACK_SIZE: usize = 4 * MB;
-const MEM_SIZE: usize = 8 * MB;
+const STACK_SIZE: usize = 4 * KB;
+const MEM_SIZE: usize = 4 * KB;
 const NUM_REGS: usize = 16;
 
 type Regs = [i64; NUM_REGS];
@@ -171,6 +173,7 @@ impl VirtualMachine {
                     let a = (reg[ins.dst_reg() as usize] & U32_MASK) >> ins.src_reg();
                     reg[ins.dst_reg() as usize] = a & U32_MASK;
                 }
+                // TODO: LE and BE
                 LE => {
                     todo!()
                 }
@@ -425,11 +428,13 @@ impl VirtualMachine {
                         self.pc += ins.offset as i64;
                     }
                 }
+                // TODO: call functions(maybe jit)
                 CALL => {
                     todo!("not implemented")
                 }
                 EXIT => return Ok(self.regs[0]),
                 _ => {
+                    dbg!(ins);
                     // virtual machine show abort here
                     unreachable!()
                 }
@@ -476,9 +481,21 @@ bounds_check(const struct ubpf_vm *vm, void *addr, int size, const char *type, u
 
 // pub fn compile()
 
-#[test]
-fn t1() {
-    use assembler::op::U32_MASK;
-    let a = U32_MASK;
-    println!("{:X}", a | 1);
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::test_utils;
+
+    #[test]
+    fn t1() {
+        let (instructions, res) = test_utils::load_data("add");
+        println!("{:?}", instructions.clone());
+
+        let inner = instructions.into_vec();
+
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+    }
 }

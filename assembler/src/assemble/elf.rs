@@ -74,7 +74,7 @@ mod tests {
 
         let ops = &buffer[r];
 
-        let instructions = Instructions::from_bytes(ops);
+        let instructions = Instructions::from(ops);
         println!("{:?}", instructions);
         // disassemble(ops);
     }

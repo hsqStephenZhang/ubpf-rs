@@ -1,0 +1,5 @@
+mov32 r0, 0
+mov32 r1, 2
+add32 r0, 1
+add32 r0, r1
+exit

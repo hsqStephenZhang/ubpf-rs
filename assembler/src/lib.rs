@@ -27,7 +27,7 @@ lazy_static::lazy_static! {
         m
     };
 
-    pub static ref ALU_OPCODES: HashMap<u8, &'static str> = {
+    pub static ref ALU_OPCODES_TO_NAME: HashMap<u8, &'static str> = {
         let mut m = HashMap::new();
         m.insert(0, "add");
         m.insert(1, "sub");
@@ -46,26 +46,25 @@ lazy_static::lazy_static! {
         m
     };
 
-    pub static ref REV_ALU_OPCODES: HashMap<&'static str,u8> = {
+    // binary operations
+    pub static ref ALU_BINARY_OPS: HashMap<&'static str,u8> = {
         let mut m = HashMap::new();
-        m.insert("add",0);
-        m.insert("sub",1);
-        m.insert("mul",2);
-        m.insert("div",3);
-        m.insert("or",4);
-        m.insert("and",5);
-        m.insert("lsh",6);
-        m.insert("rsh",7);
-        m.insert("neg",8);
-        m.insert("mod",9);
-        m.insert("xor",10);
-        m.insert("mov",11);
-        m.insert("arsh",12);
-        m.insert("(endian)",13);
+        m.insert("add",op::EBPF_ADD);
+        m.insert("sub",op::EBPF_SUB);
+        m.insert("mul",op::EBPF_MUL);
+        m.insert("div",op::EBPF_DIV);
+        m.insert("or",op::EBPF_OR);
+        m.insert("and",op::EBPF_AND);
+        m.insert("lsh",op::EBPF_LSH);
+        m.insert("rsh",op::EBPF_RSH);
+        m.insert("mod",op::EBPF_MOD);
+        m.insert("xor",op::EBPF_XOR);
+        m.insert("mov",op::EBPF_MOV);
+        m.insert("arsh",op::EBPF_ARSH);
         m
     };
 
-    pub static ref JMP_OPCODES: HashMap<u8, &'static str>  = {
+    pub static ref JMP_OPCODES_TO_NAME: HashMap<u8, &'static str>  = {
         let mut m = HashMap::new();
         m.insert(0, "ja");
         m.insert(1, "jeq");
@@ -84,26 +83,23 @@ lazy_static::lazy_static! {
         m
     };
 
-    pub static ref REV_JMP_OPCODES: HashMap< &'static str,u8>  = {
+    pub static ref JMP_CONDITIONS: HashMap< &'static str,u8>  = {
         let mut m = HashMap::new();
-        m.insert("ja",0);
-        m.insert("jeq",1);
-        m.insert("jgt",2);
-        m.insert("jge",3);
-        m.insert("jset",4);
-        m.insert("jne",5);
-        m.insert("jsgt",6);
-        m.insert("jsge",7);
-        m.insert("call",8);
-        m.insert("exit",9);
-        m.insert( "jlt",10);
-        m.insert( "jle",11);
-        m.insert( "jslt",12);
-        m.insert( "jsle",13);
+        m.insert("jeq",op::EBPF_JEQ);
+        m.insert("jgt",op::EBPF_JGT);
+        m.insert("jge",op::EBPF_JGE);
+        m.insert("jset",op::EBPF_JSET);
+        m.insert("jne",op::EBPF_JNE);
+        m.insert("jsgt",op::EBPF_JSGT);
+        m.insert("jsge",op::EBPF_JSGE);
+        m.insert( "jlt",op::EBPF_JLT);
+        m.insert( "jle",op::EBPF_JLE);
+        m.insert( "jslt",op::EBPF_JSLT);
+        m.insert( "jsle",op::EBPF_JSLE);
         m
     };
 
-    pub static ref MODES: HashMap<u8, &'static str>  = {
+    pub static ref MODES_TO_NAME: HashMap<u8, &'static str>  = {
         let mut m = HashMap::new();
         m.insert(0, "imm");
         m.insert(1, "abs");
@@ -123,7 +119,7 @@ lazy_static::lazy_static! {
         m
     };
 
-    pub static ref SIZES: HashMap<u8, &'static str>  = {
+    pub static ref SIZES_TO_NAME: HashMap<u8, &'static str>  = {
         let mut m = HashMap::new();
         // word
         m.insert(0, "w");

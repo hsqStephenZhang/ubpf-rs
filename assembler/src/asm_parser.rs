@@ -24,7 +24,7 @@ pub enum Operand {
 }
 
 /// Parsed instruction.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Instruction {
     /// Instruction name.
     pub name: String,
@@ -99,19 +99,6 @@ pub fn instructions(input: &str) -> IResult<&str, Vec<Instruction>> {
     separated_list0(tag("\n"), instruction).parse(input)
 }
 
-// /// Parse a string into a list of instructions.
-// ///
-// /// The instructions are not validated and may have invalid names and operand types.
-// pub fn parse(input: &str) -> Result<Vec<Instruction>, String> {
-//     match spaces()
-//         .with(many(parser(instruction)).skip(eof()))
-//         .parse(State::new(input))
-//     {
-//         Ok((insts, _)) => Ok(insts),
-//         Err(err) => Err(format_parse_error(&err)),
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use nom::{character::complete::space0, multi::separated_list1};
@@ -183,6 +170,8 @@ mod tests {
 
     #[test]
     fn test_instructions() {
+        println!("{:?}", instruction.parse("mov32 r0, 0x0"),);
+        // println!("{:?}",instruction.parse("mov32 r1, 2"),);
         assert_eq!(
             instruction.parse("exit"),
             Ok((
