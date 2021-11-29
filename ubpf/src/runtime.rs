@@ -488,10 +488,29 @@ mod tests {
     use crate::test_utils;
 
     #[test]
-    fn t1() {
+    fn test_add() {
         let (instructions, res) = test_utils::load_data("add");
-        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+    }
 
+    #[test]
+    fn test_mul() {
+        let (instructions, res) = test_utils::load_data("mul32_imm");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("mul32_reg");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("mul32_overflow");
         let inner = instructions.into_vec();
 
         let mut runtime = VirtualMachine::new(inner);

@@ -29,7 +29,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
 
     let alu_binary_ops = &crate::ALU_BINARY_OPS;
 
-    let mem_sizes = &crate::REV_SIZES;
+    let mem_sizes = &crate::SIZES;
 
     let jump_conditions = &crate::JMP_CONDITIONS;
 

@@ -20,43 +20,6 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    pub(crate) fn from_bytes(bytes: &[u8]) -> Instruction {
-        let mut op = 0;
-        let mut regs = 0;
-        let mut offset = 0;
-        let mut imm = 0;
-        // if current instruction is `lddx`, we should also load the next instruction's imm
-        let mut next_imm = None;
-
-        unsafe {
-            let (mut src, _): (usize, usize) = mem::transmute(bytes);
-            std::ptr::copy(src as *const u8, &mut op as *mut _ as _, 1);
-            src += 1;
-            std::ptr::copy(src as *const u8, &mut regs as *mut _ as _, 1);
-            src += 1;
-            std::ptr::copy(src as *const u8, &mut offset as *mut _ as _, 2);
-            src += 2;
-            std::ptr::copy(src as *const u8, &mut imm as *mut _ as _, 4);
-            src += 8;
-
-            if op == 0x18 {
-                let mut tmp = 0;
-                std::ptr::copy(src as *const u8, &mut tmp as *mut _ as _, 4);
-                next_imm = Some(tmp);
-            }
-        }
-
-        // dbg!(op, regs, offset, imm, next_imm);
-
-        Self {
-            op,
-            regs,
-            offset,
-            imm,
-            next_imm: next_imm,
-        }
-    }
-
     #[inline(always)]
     pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
         Self {
@@ -85,7 +48,7 @@ impl Instruction {
 
     // for alu/alu64/jmp
     #[inline(always)]
-    pub fn opcode(&self)-> u8 {
+    pub fn opcode(&self) -> u8 {
         (self.op >> 4) & 0xf // 0x11110000
     }
 
@@ -93,6 +56,43 @@ impl Instruction {
     #[inline(always)]
     pub fn source(&self) -> u8 {
         (self.op >> 3) & 0x1 // 0x00001000
+    }
+}
+
+impl From<&[u8]> for Instruction {
+    fn from(bytes: &[u8]) -> Self {
+        let mut op = 0;
+        let mut regs = 0;
+        let mut offset = 0;
+        let mut imm = 0;
+        // if current instruction is `lddx`, we should also load the next instruction's imm
+        let mut next_imm = None;
+
+        unsafe {
+            let (mut src, _): (usize, usize) = mem::transmute(bytes);
+            std::ptr::copy(src as *const u8, &mut op as *mut _ as _, 1);
+            src += 1;
+            std::ptr::copy(src as *const u8, &mut regs as *mut _ as _, 1);
+            src += 1;
+            std::ptr::copy(src as *const u8, &mut offset as *mut _ as _, 2);
+            src += 2;
+            std::ptr::copy(src as *const u8, &mut imm as *mut _ as _, 4);
+            src += 8;
+
+            if op == 0x18 {
+                let mut tmp = 0;
+                std::ptr::copy(src as *const u8, &mut tmp as *mut _ as _, 4);
+                next_imm = Some(tmp);
+            }
+        }
+
+        Self {
+            op,
+            regs,
+            offset,
+            imm,
+            next_imm: next_imm,
+        }
     }
 }
 
@@ -232,7 +232,7 @@ impl Instructions {
         Ok(Self { inner })
     }
 
-    pub fn into_vec(self)->Vec<Instruction> {
+    pub fn into_vec(self) -> Vec<Instruction> {
         self.inner
     }
 }
@@ -244,7 +244,7 @@ impl From<&[u8]> for Instructions {
         let mut inner = Vec::with_capacity(num_ins);
 
         for i in (0..bytes.len()).into_iter().step_by(8) {
-            let r = Instruction::from_bytes(&bytes[i..]);
+            let r = Instruction::from(&bytes[i..]);
             inner.push(r);
         }
 

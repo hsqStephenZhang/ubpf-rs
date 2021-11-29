@@ -2,6 +2,7 @@
 pub mod test_utils {
 
     use assembler::Instructions;
+    use assembler::integer;
     use std::fs;
     use std::path::Path;
 
@@ -19,10 +20,27 @@ pub mod test_utils {
 
         let result_content = fs::read(result_file).unwrap();
         let result = String::from_utf8(result_content).unwrap();
+        let result = result.as_str();
 
         let a = Instructions::from_asm(&instructions_content).unwrap();
 
-        (a, result.parse().unwrap())
+        // if result.starts_with("0x"){
+        //     return i64::
+        // }
+
+        // let sig = result.chars().nth(0);
+        // let iter=result.chars().into_iter();
+
+        // let s = match result_content[0] {
+        //     Some('-') => -1,
+        //     Some('+') => 1,
+        //     Some(_) => unreachable!(),
+        //     None => 1,
+        // };
+
+        let (_,val)=integer(result).unwrap();
+
+        (a, val)
     }
 
     #[test]

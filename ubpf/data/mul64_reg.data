@@ -1,0 +1,3 @@
+mov r0, 0x40000001
+mul r0, 4
+exit

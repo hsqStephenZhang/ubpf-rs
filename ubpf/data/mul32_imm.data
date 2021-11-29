@@ -1,0 +1,3 @@
+mov r0, 3
+mul32 r0, 4
+exit
