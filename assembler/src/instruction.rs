@@ -1,5 +1,7 @@
 use std::mem;
 
+use nom::AsBytes;
+
 use crate::{
     alu,
     assemble::asm::assemble,
@@ -18,11 +20,52 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    pub(crate) fn from_bytes(bytes: &[u8]) -> Instruction {
+    #[inline(always)]
+    pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
+        Self {
+            op,
+            regs,
+            offset,
+            imm,
+            next_imm: None,
+        }
+    }
+
+    #[inline(always)]
+    pub fn src_reg(&self) -> u8 {
+        (self.regs >> 4) & 0xf
+    }
+
+    #[inline(always)]
+    pub fn dst_reg(&self) -> u8 {
+        self.regs & 0xf
+    }
+
+    #[inline(always)]
+    pub fn class(&self) -> u8 {
+        self.op & 0x7
+    }
+
+    // for alu/alu64/jmp
+    #[inline(always)]
+    pub fn opcode(&self) -> u8 {
+        (self.op >> 4) & 0xf // 0x11110000
+    }
+
+    // for alu/alu64/jmp
+    #[inline(always)]
+    pub fn source(&self) -> u8 {
+        (self.op >> 3) & 0x1 // 0x00001000
+    }
+}
+
+impl From<&[u8]> for Instruction {
+    fn from(bytes: &[u8]) -> Self {
         let mut op = 0;
         let mut regs = 0;
         let mut offset = 0;
         let mut imm = 0;
+        // if current instruction is `lddx`, we should also load the next instruction's imm
         let mut next_imm = None;
 
         unsafe {
@@ -43,8 +86,6 @@ impl Instruction {
             }
         }
 
-        // dbg!(op, regs, offset, imm, next_imm);
-
         Self {
             op,
             regs,
@@ -52,28 +93,6 @@ impl Instruction {
             imm,
             next_imm: next_imm,
         }
-    }
-
-    pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
-        Self {
-            op,
-            regs,
-            offset,
-            imm,
-            next_imm: None,
-        }
-    }
-
-    pub fn src_reg(&self) -> u8 {
-        (self.regs >> 4) & 0xf
-    }
-
-    pub fn dst_reg(&self) -> u8 {
-        self.regs & 0xf
-    }
-
-    pub fn class(&self) -> u8 {
-        self.op & 0x7
     }
 }
 
@@ -84,9 +103,9 @@ impl std::fmt::Debug for Instruction {
         let src = self.src_reg();
 
         if cls == class::EBPF_CLS_ALU || cls == class::EBPF_CLS_ALU64 {
-            let source = (self.op >> 3) & 0x1; // 0x00001000
-            let opcode = (self.op >> 4) & 0xf; // 0x11110000
-            let opcode_name = *crate::ALU_OPCODES.get(&opcode).unwrap();
+            let source = self.source(); // 0x00001000
+            let opcode = self.opcode(); // 0x11110000
+            let opcode_name = *crate::ALU_OPCODES_TO_NAME.get(&opcode).unwrap();
 
             match opcode {
                 alu::END => {
@@ -105,9 +124,9 @@ impl std::fmt::Debug for Instruction {
                 }
             }
         } else if cls == class::EBPF_CLS_JMP {
-            let source = (self.op >> 3) & 0x1; // 0x00001000
-            let opcode = (self.op >> 4) & 0xf; // 0x11110000
-            let opcode_name = *crate::JMP_OPCODES.get(&opcode).unwrap();
+            let source = self.source(); // 0x00001000
+            let opcode = self.opcode(); // 0x11110000
+            let opcode_name = *crate::JMP_OPCODES_TO_NAME.get(&opcode).unwrap();
             match opcode_name {
                 "exit" => return write!(f, "{}", opcode_name),
                 "call" => return write!(f, "{} {}", opcode_name, imm(self.imm)),
@@ -140,11 +159,10 @@ impl std::fmt::Debug for Instruction {
             || cls == class::EBPF_CLS_STX
         {
             let size = (self.op >> 3) & 0x3; // 0x00011000
-            let size_name = *crate::SIZES.get(&size).unwrap();
+            let size_name = *crate::SIZES_TO_NAME.get(&size).unwrap();
             let class_name = *crate::CLASS.get(&cls).unwrap();
 
-            // dbg!(self.next_imm.is_some(), self.op == 0x0);
-            // lddx
+            // handle special cases: lddx
             if let Some(next_imm) = self.next_imm {
                 let double_word_imm = ((next_imm as i64) << 32) + self.imm as i64;
                 return write!(
@@ -209,22 +227,34 @@ impl Instructions {
         Self { inner }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Self {
+    pub fn from_asm(text: &str) -> Result<Self, ParseError> {
+        let inner = assemble(text)?;
+        Ok(Self { inner })
+    }
+
+    pub fn into_vec(self) -> Vec<Instruction> {
+        self.inner
+    }
+}
+
+impl From<&[u8]> for Instructions {
+    fn from(bytes: &[u8]) -> Self {
         assert_eq!(bytes.len() % 8, 0);
         let num_ins = bytes.len() >> 3;
         let mut inner = Vec::with_capacity(num_ins);
 
         for i in (0..bytes.len()).into_iter().step_by(8) {
-            let r = Instruction::from_bytes(&bytes[i..]);
+            let r = Instruction::from(&bytes[i..]);
             inner.push(r);
         }
 
         Self { inner }
     }
+}
 
-    pub fn from_asm(text: &str) -> Result<Self, ParseError> {
-        let inner = assemble(text)?;
-        Ok(Self { inner })
+impl From<Vec<u8>> for Instructions {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::from(bytes.as_bytes())
     }
 }
 

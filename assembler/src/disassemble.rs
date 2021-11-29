@@ -34,7 +34,7 @@ mod tests {
                  mov r0,#0
                  exit
         */
-        let instructions = Instructions::from_bytes(ins.as_slice());
+        let instructions = Instructions::from(ins.as_slice());
         println!("{:?}", instructions);
         // let a=1819043144;
         // let b=
@@ -64,7 +64,7 @@ mod tests {
            add r1,#1
            stxdw r0, r1
         */
-        let instructions = Instructions::from_bytes(ins.as_slice());
+        let instructions = Instructions::from(ins.as_slice());
         println!("{:?}", instructions);
     }
 }
