@@ -1,18 +1,18 @@
 mod asm_parser;
 #[allow(dead_code)]
 mod assemble;
-mod ebpf;
 mod disassemble;
+mod ebpf;
 mod error;
-mod utils;
+mod instruction;
+pub mod utils;
 
-use std::{collections::HashMap, mem};
+use std::collections::HashMap;
 
 // pub use assemble::*;
 pub use ebpf::{alu, class, op};
-pub use disassemble::{disassemble, disassemble_one};
 pub use error::ElfError;
-pub use utils::*;
+pub use instruction::{Instruction, Instructions};
 
 lazy_static::lazy_static! {
     pub static ref CLASS: HashMap<u8, &'static str> = {
@@ -144,61 +144,4 @@ lazy_static::lazy_static! {
         m.insert("dw", 3);
         m
     };
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Instruction {
-    pub op: u8,
-    pub regs: u8,
-    pub offset: i16,
-    pub imm: i32,
-}
-
-impl Instruction {
-    pub fn from_bytes(bytes: &[u8]) -> Instruction {
-        let mut op = 0;
-        let mut regs = 0;
-        let mut offset = 0;
-        let mut imm = 0;
-        // debug_assert!(bytes.len() == 8);
-
-        unsafe {
-            let (mut src, _): (usize, usize) = mem::transmute(bytes);
-            std::ptr::copy(src as *const u8, &mut op as *mut _ as _, 1);
-            src += 1;
-            std::ptr::copy(src as *const u8, &mut regs as *mut _ as _, 1);
-            src += 1;
-            std::ptr::copy(src as *const u8, &mut offset as *mut _ as _, 2);
-            src += 2;
-            std::ptr::copy(src as *const u8, &mut imm as *mut _ as _, 4);
-        }
-
-        Self {
-            op,
-            regs,
-            offset,
-            imm,
-        }
-    }
-
-    pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
-        Self {
-            op,
-            regs,
-            offset,
-            imm,
-        }
-    }
-
-    pub fn src_reg(&self) -> u8 {
-        (self.regs >> 4) & 0xf
-    }
-
-    pub fn dst_reg(&self) -> u8 {
-        self.regs & 0xf
-    }
-
-    pub fn class(&self) -> u8 {
-        self.op & 0x7
-    }
 }

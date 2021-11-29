@@ -1,62 +1,11 @@
-use goblin::elf::Elf;
-use goblin::elf64::sym::STT_FUNC;
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
 use crate::{
     asm_parser::{instructions, Operand},
     class,
     error::ParseError,
-    op, ElfError, Instruction,
+    op, Instruction,
 };
-
-pub fn locate_function<'a>(elf: &Elf<'a>, target_name: &str) -> Result<Range<usize>, ElfError> {
-    let idx = lookup_function(elf, target_name)?;
-
-    let f = elf.syms.get(idx).unwrap();
-
-    let hdr = elf.section_headers.get(f.st_shndx).unwrap();
-
-    let offset = (hdr.sh_offset + f.st_value) as usize;
-    let size = f.st_size as usize;
-
-    return Ok(offset..(offset + size));
-}
-
-pub fn lookup_section<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, ElfError> {
-    for (index, header) in elf.section_headers.iter().enumerate() {
-        let sh_name = header.sh_name;
-        let name = elf.shdr_strtab.get_at(sh_name);
-        println!("{:?}", name);
-        match name {
-            Some(r) => {
-                if r == target_name {
-                    return Ok(index);
-                }
-            }
-            None => {}
-        }
-    }
-    Err(ElfError::SectionNotFound(target_name.into()))
-}
-
-pub fn lookup_function<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, ElfError> {
-    for (index, s) in elf.syms.iter().enumerate() {
-        if s.st_type() != STT_FUNC {
-            continue;
-        }
-        let st_name = s.st_name;
-        let name = elf.strtab.get_at(st_name);
-        match name {
-            Some(r) => {
-                if r == target_name {
-                    return Ok(index);
-                }
-            }
-            None => {}
-        }
-    }
-    Err(ElfError::FunctionNotFound(target_name.into()))
-}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
@@ -176,7 +125,7 @@ fn make_instruction_map() -> HashMap<String, (InstructionType, u8)> {
 }
 
 #[allow(warnings)]
-pub fn assemble(src: &str) -> Result<Vec<Instruction>, ParseError> {
+pub(crate) fn assemble(src: &str) -> Result<Vec<Instruction>, ParseError> {
     let (_, raw_instructions) = instructions(src).map_err(|e| ParseError::ParseFailed)?;
 
     let mut result = Vec::with_capacity(raw_instructions.len());
@@ -192,7 +141,7 @@ pub fn assemble(src: &str) -> Result<Vec<Instruction>, ParseError> {
                     Err(msg) => todo!(),
                 }
                 // Special case for lddw.
-                if let LoadImm = inst_type {
+                if let InstructionType::LoadImm = inst_type {
                     if let Some(operands) = &raw.operands {
                         if let Operand::Integer(imm) = operands[1] {
                             result.push(insn(0, 0, 0, 0, imm >> 32).unwrap());
@@ -212,7 +161,8 @@ fn operands_tuple(operands: &Option<Vec<Operand>>) -> Result<(Operand, Operand, 
     match operands {
         None => Ok((Operand::Nil, Operand::Nil, Operand::Nil)),
         Some(operands) => match operands.len() {
-            0 => Ok((operands[0], Operand::Nil, Operand::Nil)),
+            0 => Ok((Operand::Nil, Operand::Nil, Operand::Nil)),
+            1 => Ok((operands[0], Operand::Nil, Operand::Nil)),
             2 => Ok((operands[0], operands[1], Operand::Nil)),
             3 => Ok((operands[0], operands[1], operands[2])),
             _ => Err("Too many operands".to_string()),
@@ -291,7 +241,7 @@ fn insn(op: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Instruction, P
 
     let dst = dst as u8;
     let src = src as u8;
-    let reg = (dst << &0xf) | (src << 4);
+    let reg = (dst & 0xf) | (src << 4);
     let off = off as i16;
     let imm = imm as i32;
     Ok(Instruction::new(op, reg, off, imm))
@@ -299,25 +249,28 @@ fn insn(op: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Instruction, P
 
 #[cfg(test)]
 mod tests {
-    use crate::assemble::locate_function;
-    use crate::disassemble;
-    use goblin::Object;
-    use std::fs;
-    use std::path::Path;
+    use crate::Instructions;
 
     #[test]
     fn t1() {
-        let path = Path::new("data/hello_kern.o");
-        let buffer = fs::read(path).unwrap();
-        let elf = match Object::parse(&buffer).unwrap() {
-            Object::Elf(elf) => elf,
-            _ => panic!(""),
-        };
+        let prog = "add64 r1, 0x605
+                 mov64 r2, 0x32
+                 mov64 r1, r0
+                 be16 r0
+                 neg64 r2
+                 exit";
 
-        let r = locate_function(&elf, "bpf_prog").unwrap();
+        println!("{:?}", Instructions::from_asm(prog).unwrap());
 
-        let ops = &buffer[r];
+        println!("---------------------------");
 
-        disassemble(ops);
+        let buffer = [
+            0x07, 0x01, 0x00, 0x00, 0x05, 0x06, 0x00, 0x00, 0xb7, 0x02, 0x00, 0x00, 0x32, 0x00,
+            0x00, 0x00, 0xbf, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xdc, 0x00, 0x00, 0x00,
+            0x10, 0x00, 0x00, 0x00, 0x87, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x95, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let disassemble_prog = Instructions::from_bytes(buffer.as_slice());
+        println!("{:?}", disassemble_prog);
     }
 }
