@@ -512,6 +512,7 @@ mod tests {
 
         let (instructions, res) = test_utils::load_data("mul32_overflow");
         let inner = instructions.into_vec();
+
         let mut runtime = VirtualMachine::new(inner);
         let r = runtime.exec();
         println!("{:?},{:?}", r, res);
