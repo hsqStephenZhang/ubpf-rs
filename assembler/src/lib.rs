@@ -9,7 +9,6 @@ mod utils;
 use std::{collections::HashMap, mem};
 
 // pub use assemble::*;
-pub use assemble::{locate_function, lookup_function, lookup_section};
 pub use consts::{alu, class, op};
 pub use disassemble::{disassemble, disassemble_one};
 pub use error::ElfError;
@@ -47,6 +46,25 @@ lazy_static::lazy_static! {
         m
     };
 
+    pub static ref REV_ALU_OPCODES: HashMap<&'static str,u8> = {
+        let mut m = HashMap::new();
+        m.insert("add",0);
+        m.insert("sub",1);
+        m.insert("mul",2);
+        m.insert("div",3);
+        m.insert("or",4);
+        m.insert("and",5);
+        m.insert("lsh",6);
+        m.insert("rsh",7);
+        m.insert("neg",8);
+        m.insert("mod",9);
+        m.insert("xor",10);
+        m.insert("mov",11);
+        m.insert("arsh",12);
+        m.insert("(endian)",13);
+        m
+    };
+
     pub static ref JMP_OPCODES: HashMap<u8, &'static str>  = {
         let mut m = HashMap::new();
         m.insert(0, "ja");
@@ -66,6 +84,25 @@ lazy_static::lazy_static! {
         m
     };
 
+    pub static ref REV_JMP_OPCODES: HashMap< &'static str,u8>  = {
+        let mut m = HashMap::new();
+        m.insert("ja",0);
+        m.insert("jeq",1);
+        m.insert("jgt",2);
+        m.insert("jge",3);
+        m.insert("jset",4);
+        m.insert("jne",5);
+        m.insert("jsgt",6);
+        m.insert("jsge",7);
+        m.insert("call",8);
+        m.insert("exit",9);
+        m.insert( "jlt",10);
+        m.insert( "jle",11);
+        m.insert( "jslt",12);
+        m.insert( "jsle",13);
+        m
+    };
+
     pub static ref MODES: HashMap<u8, &'static str>  = {
         let mut m = HashMap::new();
         m.insert(0, "imm");
@@ -73,6 +110,16 @@ lazy_static::lazy_static! {
         m.insert(2, "ind");
         m.insert(3, "mem");
         m.insert(6, "xadd");
+        m
+    };
+
+    pub static ref REV_MODES: HashMap< &'static str,u8>  = {
+        let mut m = HashMap::new();
+        m.insert("imm", 0);
+        m.insert("abs", 1);
+        m.insert("ind", 2);
+        m.insert("mem", 3);
+        m.insert("xadd", 6);
         m
     };
 
@@ -88,6 +135,15 @@ lazy_static::lazy_static! {
         m.insert(3, "dw");
         m
     };
+
+    pub static ref REV_SIZES: HashMap<&'static str, u8>  = {
+        let mut m = HashMap::new();
+        m.insert("w", 0);
+        m.insert("h", 1);
+        m.insert("b", 2);
+        m.insert("dw", 3);
+        m
+    };
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -99,7 +155,7 @@ pub struct Instruction {
 }
 
 impl Instruction {
-    pub fn new(bytes: &[u8]) -> Instruction {
+    pub fn from_bytes(bytes: &[u8]) -> Instruction {
         let mut op = 0;
         let mut regs = 0;
         let mut offset = 0;
@@ -117,6 +173,15 @@ impl Instruction {
             std::ptr::copy(src as *const u8, &mut imm as *mut _ as _, 4);
         }
 
+        Self {
+            op,
+            regs,
+            offset,
+            imm,
+        }
+    }
+
+    pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
         Self {
             op,
             regs,

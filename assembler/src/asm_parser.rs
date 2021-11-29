@@ -19,6 +19,8 @@ pub enum Operand {
     Integer(i64),
     /// Register number and offset.
     Memory(i64, i64),
+    // for pattern matching
+    Nil,
 }
 
 /// Parsed instruction.
@@ -125,41 +127,6 @@ mod tests {
 
     #[test]
     fn test_digit() {
-        // let mut pattern = hex_digit1;
-        // let r: IResult<&str, u64> =
-        //     pattern("0x1abcLLL").map(|r| (r.0, u64::from_str_radix(r.1, 16).unwrap()));
-        // println!("{:?}", r);
-
-        // let mut pattern = digit1;
-        // let r: IResult<&str, u64> =
-        //     pattern("123LLL").map(|r| (r.0, u64::from_str_radix(r.1, 16).unwrap()));
-        // println!("{:?}", r);
-
-        // let sign_inner = alt((tag("+"), tag("-")));
-        // let sign = opt(sign_inner);
-
-        // let a = tuple((tag("0x"), hex_digit1));
-        // let b = tuple((tag(""), digit1));
-        // let mut number = alt((a, b));
-
-        // let mut pattern = tuple((sign, number));
-        // //(s, (left, (prefix, d)))
-        // // (&str, (Option<&str>, (&str, &str)))
-        // let r: IResult<&str, i64> = pattern("+1234").map(|(left, (s, (prefix, d)))| {
-        //     let is_signed = match s {
-        //         // Some("-") => -1,
-        //         _ => 1,
-        //     };
-        //     let val = if prefix.len() == 0 {
-        //         u64::from_str_radix(d, 10).unwrap()
-        //     } else {
-        //         u64::from_str_radix(d, 16).unwrap()
-        //     };
-        //     let val = val as i64 * is_signed;
-        //     (left, val)
-        // });
-        // println!("{:?}", r);
-
         let val = integer("0x1abcLLL").unwrap();
         println!("{:?}", val.1);
         assert_eq!(val.1, 0x1abc);
@@ -421,212 +388,215 @@ exit";
 
         assert_eq!(
             instructions(src),
-            Ok(("",vec![
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 12)]),
-                },
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Memory(1, 13)]),
-                },
-                Instruction {
-                    name: "lsh".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Integer(8)]),
-                },
-                Instruction {
-                    name: "or".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Register(2)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
-                },
-                Instruction {
-                    name: "jne".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(3),
-                        Operand::Integer(8),
-                        Operand::Integer(37)
-                    ]),
-                },
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 23)]),
-                },
-                Instruction {
-                    name: "jne".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(2),
-                        Operand::Integer(6),
-                        Operand::Integer(35)
-                    ]),
-                },
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 14)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(1), Operand::Integer(14)]),
-                },
-                Instruction {
-                    name: "and".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Integer(15)]),
-                },
-                Instruction {
-                    name: "lsh".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Integer(2)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(1), Operand::Register(2)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
-                },
-                Instruction {
-                    name: "ldxh".to_string(),
-                    operands: Some(vec![Operand::Register(4), Operand::Memory(1, 12)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(1), Operand::Integer(20)]),
-                },
-                Instruction {
-                    name: "rsh".to_string(),
-                    operands: Some(vec![Operand::Register(4), Operand::Integer(2)]),
-                },
-                Instruction {
-                    name: "and".to_string(),
-                    operands: Some(vec![Operand::Register(4), Operand::Integer(60)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Register(4)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Integer(4294967276)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(5), Operand::Integer(21)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Integer(0)]),
-                },
-                Instruction {
-                    name: "jgt".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(5),
-                        Operand::Register(4),
-                        Operand::Integer(20)
-                    ]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(5), Operand::Register(3)]),
-                },
-                Instruction {
-                    name: "lsh".to_string(),
-                    operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
-                },
-                Instruction {
-                    name: "arsh".to_string(),
-                    operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(4), Operand::Register(1)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(4), Operand::Register(5)]),
-                },
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(5), Operand::Memory(4, 0)]),
-                },
-                Instruction {
-                    name: "jeq".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(5),
-                        Operand::Integer(1),
-                        Operand::Integer(4)
-                    ]),
-                },
-                Instruction {
-                    name: "jeq".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(5),
-                        Operand::Integer(0),
-                        Operand::Integer(12)
-                    ]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
-                },
-                Instruction {
-                    name: "jeq".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(5),
-                        Operand::Integer(5),
-                        Operand::Integer(9)
-                    ]),
-                },
-                Instruction {
-                    name: "ja".to_string(),
-                    operands: Some(vec![Operand::Integer(2)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Integer(1)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
-                },
-                Instruction {
-                    name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Memory(4, 1)]),
-                },
-                Instruction {
-                    name: "add".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Register(6)]),
-                },
-                Instruction {
-                    name: "lsh".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
-                },
-                Instruction {
-                    name: "arsh".to_string(),
-                    operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
-                },
-                Instruction {
-                    name: "jsgt".to_string(),
-                    operands: Some(vec![
-                        Operand::Register(2),
-                        Operand::Register(3),
-                        Operand::Integer(-18)
-                    ]),
-                },
-                Instruction {
-                    name: "ja".to_string(),
-                    operands: Some(vec![Operand::Integer(1)]),
-                },
-                Instruction {
-                    name: "mov".to_string(),
-                    operands: Some(vec![Operand::Register(0), Operand::Integer(1)]),
-                },
-                Instruction {
-                    name: "exit".to_string(),
-                    operands: None,
-                }
-            ]))
+            Ok((
+                "",
+                vec![
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Memory(1, 12)]),
+                    },
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Memory(1, 13)]),
+                    },
+                    Instruction {
+                        name: "lsh".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Integer(8)]),
+                    },
+                    Instruction {
+                        name: "or".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Register(2)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
+                    },
+                    Instruction {
+                        name: "jne".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(3),
+                            Operand::Integer(8),
+                            Operand::Integer(37)
+                        ]),
+                    },
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Memory(1, 23)]),
+                    },
+                    Instruction {
+                        name: "jne".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(2),
+                            Operand::Integer(6),
+                            Operand::Integer(35)
+                        ]),
+                    },
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Memory(1, 14)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(1), Operand::Integer(14)]),
+                    },
+                    Instruction {
+                        name: "and".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Integer(15)]),
+                    },
+                    Instruction {
+                        name: "lsh".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Integer(2)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(1), Operand::Register(2)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(0), Operand::Integer(0)]),
+                    },
+                    Instruction {
+                        name: "ldxh".to_string(),
+                        operands: Some(vec![Operand::Register(4), Operand::Memory(1, 12)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(1), Operand::Integer(20)]),
+                    },
+                    Instruction {
+                        name: "rsh".to_string(),
+                        operands: Some(vec![Operand::Register(4), Operand::Integer(2)]),
+                    },
+                    Instruction {
+                        name: "and".to_string(),
+                        operands: Some(vec![Operand::Register(4), Operand::Integer(60)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Register(4)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(2), Operand::Integer(4294967276)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(5), Operand::Integer(21)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Integer(0)]),
+                    },
+                    Instruction {
+                        name: "jgt".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(5),
+                            Operand::Register(4),
+                            Operand::Integer(20)
+                        ]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(5), Operand::Register(3)]),
+                    },
+                    Instruction {
+                        name: "lsh".to_string(),
+                        operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
+                    },
+                    Instruction {
+                        name: "arsh".to_string(),
+                        operands: Some(vec![Operand::Register(5), Operand::Integer(32)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(4), Operand::Register(1)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(4), Operand::Register(5)]),
+                    },
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(5), Operand::Memory(4, 0)]),
+                    },
+                    Instruction {
+                        name: "jeq".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(5),
+                            Operand::Integer(1),
+                            Operand::Integer(4)
+                        ]),
+                    },
+                    Instruction {
+                        name: "jeq".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(5),
+                            Operand::Integer(0),
+                            Operand::Integer(12)
+                        ]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
+                    },
+                    Instruction {
+                        name: "jeq".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(5),
+                            Operand::Integer(5),
+                            Operand::Integer(9)
+                        ]),
+                    },
+                    Instruction {
+                        name: "ja".to_string(),
+                        operands: Some(vec![Operand::Integer(2)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Integer(1)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(6), Operand::Register(3)]),
+                    },
+                    Instruction {
+                        name: "ldxb".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Memory(4, 1)]),
+                    },
+                    Instruction {
+                        name: "add".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Register(6)]),
+                    },
+                    Instruction {
+                        name: "lsh".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
+                    },
+                    Instruction {
+                        name: "arsh".to_string(),
+                        operands: Some(vec![Operand::Register(3), Operand::Integer(32)]),
+                    },
+                    Instruction {
+                        name: "jsgt".to_string(),
+                        operands: Some(vec![
+                            Operand::Register(2),
+                            Operand::Register(3),
+                            Operand::Integer(-18)
+                        ]),
+                    },
+                    Instruction {
+                        name: "ja".to_string(),
+                        operands: Some(vec![Operand::Integer(1)]),
+                    },
+                    Instruction {
+                        name: "mov".to_string(),
+                        operands: Some(vec![Operand::Register(0), Operand::Integer(1)]),
+                    },
+                    Instruction {
+                        name: "exit".to_string(),
+                        operands: None,
+                    }
+                ]
+            ))
         );
     }
 }

@@ -42,7 +42,7 @@ impl VirtualMachine {
         self.regs[10] = stack_bottom + std::mem::size_of::<Stack>() as i64;
     }
 
-    pub fn exec(&mut self) ->Result<i64,()>{
+    pub fn exec(&mut self) -> Result<i64, ()> {
         use assembler::op::*;
         self.reset();
 
@@ -131,7 +131,7 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] = old >> (reg[ins.src_reg() as usize] as i64);
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
-                NEG => {
+                NEG32 => {
                     reg[ins.dst_reg() as usize] = -reg[ins.dst_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
@@ -318,52 +318,56 @@ impl VirtualMachine {
                     }
                 }
                 JGT_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm as i64 | U32_MASK) as u64{
+                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm as i64 | U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGT_REG => {
-                    if reg[ins.dst_reg() as usize] as u64 > (reg[ins.src_reg() as usize] | U32_MASK) as u64{
+                    if reg[ins.dst_reg() as usize] as u64
+                        > (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                    {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGE_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm as i64 | U32_MASK)  as u64{
+                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm as i64 | U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGE_REG => {
-                    if reg[ins.dst_reg() as usize] as u64 >= (reg[ins.src_reg() as usize] | U32_MASK)  as u64{
+                    if reg[ins.dst_reg() as usize] as u64
+                        >= (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                    {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSET_REG => {
-                    if reg[ins.dst_reg() as usize] & reg[ins.src_reg() as usize] !=0 {
+                    if reg[ins.dst_reg() as usize] & reg[ins.src_reg() as usize] != 0 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSET_IMM => {
-                    if reg[ins.dst_reg() as usize] == ins.imm as i64{
+                    if reg[ins.dst_reg() as usize] == ins.imm as i64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGT_IMM => {
-                    if reg[ins.dst_reg() as usize] > ins.imm as i64{
+                    if reg[ins.dst_reg() as usize] > ins.imm as i64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGT_REG => {
-                    if reg[ins.dst_reg() as usize] > reg[ins.src_reg() as usize]{
+                    if reg[ins.dst_reg() as usize] > reg[ins.src_reg() as usize] {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGE_IMM => {
-                    if reg[ins.dst_reg() as usize] >= ins.imm as i64{
+                    if reg[ins.dst_reg() as usize] >= ins.imm as i64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGE_REG => {
-                    if reg[ins.dst_reg() as usize] >= reg[ins.src_reg() as usize]{
+                    if reg[ins.dst_reg() as usize] >= reg[ins.src_reg() as usize] {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -378,51 +382,53 @@ impl VirtualMachine {
                     }
                 }
                 JLT_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm as i64 | U32_MASK) as u64{
+                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm as i64 | U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLT_REG => {
-                    if (reg[ins.dst_reg() as usize] as u64) < (reg[ins.src_reg() as usize] | U32_MASK) as u64{
+                    if (reg[ins.dst_reg() as usize] as u64)
+                        < (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                    {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLE_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm as i64 | U32_MASK) as u64{
+                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm as i64 | U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLE_REG => {
-                    if (reg[ins.dst_reg() as usize] as u64) <= (reg[ins.src_reg() as usize] | U32_MASK) as u64{
+                    if (reg[ins.dst_reg() as usize] as u64)
+                        <= (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                    {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLT_IMM => {
-                    if reg[ins.dst_reg() as usize] < ins.imm as i64{
+                    if reg[ins.dst_reg() as usize] < ins.imm as i64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLT_REG => {
-                    if reg[ins.dst_reg() as usize] < reg[ins.src_reg() as usize]{
+                    if reg[ins.dst_reg() as usize] < reg[ins.src_reg() as usize] {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLE_IMM => {
-                    if reg[ins.dst_reg() as usize] <= ins.imm as i64{
+                    if reg[ins.dst_reg() as usize] <= ins.imm as i64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLE_REG => {
-                    if reg[ins.dst_reg() as usize] <= reg[ins.src_reg() as usize]{
+                    if reg[ins.dst_reg() as usize] <= reg[ins.src_reg() as usize] {
                         self.pc += ins.offset as i64;
                     }
                 }
                 CALL => {
                     todo!("not implemented")
                 }
-                EXIT => {
-                    return Ok(self.regs[0])
-                }
+                EXIT => return Ok(self.regs[0]),
                 _ => {
                     // virtual machine show abort here
                     unreachable!()

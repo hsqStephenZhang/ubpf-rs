@@ -18,6 +18,12 @@ pub mod op {
 
     use super::class::*;
 
+    pub const EBPF_IMM: u8 = 0x00;
+    pub const EBPF_ABS: u8 = 0x20;
+    pub const EBPF_IND: u8 = 0x40;
+    pub const EBPF_MEM: u8 = 0x60;
+    pub const EBPF_XADD: u8 = 0xc0;
+
     pub const U32_MASK: i64 = 0x00000000ffffffff;
 
     pub const MASK: u8 = 0x07;
@@ -49,7 +55,7 @@ pub mod op {
     pub const LSH_REG: u8 = EBPF_CLS_ALU | EBPF_SRC_REG | 0x60;
     pub const RSH_IMM: u8 = EBPF_CLS_ALU | EBPF_SRC_IMM | 0x70;
     pub const RSH_REG: u8 = EBPF_CLS_ALU | EBPF_SRC_REG | 0x70;
-    pub const NEG: u8 = EBPF_CLS_ALU | 0x80;
+    pub const NEG32: u8 = EBPF_CLS_ALU | 0x80;
     pub const MOD_IMM: u8 = EBPF_CLS_ALU | EBPF_SRC_IMM | 0x90;
     pub const MOD_REG: u8 = EBPF_CLS_ALU | EBPF_SRC_REG | 0x90;
     pub const XOR_IMM: u8 = EBPF_CLS_ALU | EBPF_SRC_IMM | 0xa0;

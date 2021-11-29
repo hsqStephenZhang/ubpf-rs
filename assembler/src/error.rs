@@ -15,3 +15,17 @@ pub enum ElfError {
     #[error("unknown data store error")]
     Unknown,
 }
+
+#[derive(Error, Debug)]
+pub enum ParseError {
+    #[error("nom parse error")]
+    ParseFailed,
+    #[error("invalid dst register")]
+    InvalidDst(i64),
+    #[error("invalid src register")]
+    InvalidSrc(i64),
+    #[error("invalid offset")]
+    InvalidOffset(i64),
+    #[error("invalid immediate")]
+    InvalidImmediate(i64),
+}
