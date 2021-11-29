@@ -1,7 +1,7 @@
 mod asm_parser;
 #[allow(dead_code)]
 mod assemble;
-mod consts;
+mod ebpf;
 mod disassemble;
 mod error;
 mod utils;
@@ -9,7 +9,7 @@ mod utils;
 use std::{collections::HashMap, mem};
 
 // pub use assemble::*;
-pub use consts::{alu, class, op};
+pub use ebpf::{alu, class, op};
 pub use disassemble::{disassemble, disassemble_one};
 pub use error::ElfError;
 pub use utils::*;
