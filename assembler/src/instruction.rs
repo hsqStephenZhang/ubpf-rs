@@ -7,27 +7,28 @@ use crate::{
     assemble::asm::assemble,
     class,
     error::ParseError,
-    utils::{imm, memory, offset, reg},
+    utils::{memory, reg},
 };
+
+const LDDW: u8 = 0x18;
+const INS_SIZE: usize = 8;
 
 #[derive(Clone, Copy)]
 pub struct Instruction {
     pub op: u8,
     pub regs: u8,
     pub offset: i16,
-    pub imm: i32,
-    pub next_imm: Option<i32>,
+    pub imm: i64,
 }
 
 impl Instruction {
     #[inline(always)]
-    pub fn new(op: u8, regs: u8, offset: i16, imm: i32) -> Instruction {
+    pub fn new(op: u8, regs: u8, offset: i16, imm: i64) -> Instruction {
         Self {
             op,
             regs,
             offset,
             imm,
-            next_imm: None,
         }
     }
 
@@ -59,14 +60,15 @@ impl Instruction {
     }
 }
 
+/// from bytes, notice that we should handle lddw here, which means
+/// we should perceive the next instruction's raw content
 impl From<&[u8]> for Instruction {
     fn from(bytes: &[u8]) -> Self {
         let mut op = 0;
         let mut regs = 0;
         let mut offset = 0;
-        let mut imm = 0;
         // if current instruction is `lddx`, we should also load the next instruction's imm
-        let mut next_imm = None;
+        let mut imm = 0;
 
         unsafe {
             let (mut src, _): (usize, usize) = mem::transmute(bytes);
@@ -80,10 +82,13 @@ impl From<&[u8]> for Instruction {
             src += 8;
 
             if op == 0x18 {
+                assert!(bytes.len() >= 16);
                 let mut tmp = 0;
                 std::ptr::copy(src as *const u8, &mut tmp as *mut _ as _, 4);
-                next_imm = Some(tmp);
+                imm = ((tmp as i64) << 32) | imm;
             }
+
+            dbg!(imm);
         }
 
         Self {
@@ -91,7 +96,6 @@ impl From<&[u8]> for Instruction {
             regs,
             offset,
             imm,
-            next_imm: next_imm,
         }
     }
 }
@@ -117,7 +121,7 @@ impl std::fmt::Debug for Instruction {
                 }
                 _ => {
                     if source == 0 {
-                        return write!(f, "{} {}, {}", opcode_name, reg(dst), imm(self.imm),);
+                        return write!(f, "{} {}, {}", opcode_name, reg(dst), self.imm,);
                     } else {
                         return write!(f, "{} {}, {}", opcode_name, reg(dst), reg(src),);
                     }
@@ -129,8 +133,8 @@ impl std::fmt::Debug for Instruction {
             let opcode_name = *crate::JMP_OPCODES_TO_NAME.get(&opcode).unwrap();
             match opcode_name {
                 "exit" => return write!(f, "{}", opcode_name),
-                "call" => return write!(f, "{} {}", opcode_name, imm(self.imm)),
-                "ja" => return write!(f, "{} {}", opcode_name, offset(self.offset)),
+                "call" => return write!(f, "{} {}", opcode_name, self.imm),
+                "ja" => return write!(f, "{} {}", opcode_name, self.offset),
                 _ => {
                     if source == 0 {
                         return write!(
@@ -138,8 +142,8 @@ impl std::fmt::Debug for Instruction {
                             "{} {},{}, {}",
                             opcode_name,
                             reg(dst),
-                            imm(self.imm),
-                            offset(self.offset)
+                            self.imm,
+                            self.offset
                         );
                     } else {
                         return write!(
@@ -147,8 +151,8 @@ impl std::fmt::Debug for Instruction {
                             "{} {},{}, {}",
                             opcode_name,
                             reg(dst),
-                            imm(src as i32),
-                            offset(self.offset)
+                            src as i64,
+                            self.offset
                         );
                     }
                 }
@@ -163,16 +167,8 @@ impl std::fmt::Debug for Instruction {
             let class_name = *crate::CLASS.get(&cls).unwrap();
 
             // handle special cases: lddx
-            if let Some(next_imm) = self.next_imm {
-                let double_word_imm = ((next_imm as i64) << 32) + self.imm as i64;
-                return write!(
-                    f,
-                    "{}{} {}, {}",
-                    class_name,
-                    size_name,
-                    reg(dst),
-                    double_word_imm
-                );
+            if self.op == 0x18 {
+                return write!(f, "{}{} {}, {}", class_name, size_name, reg(dst), self.imm);
             } else if self.op == 0x0 {
                 // section instruction of lddw
                 return write!(f, "");
@@ -196,7 +192,7 @@ impl std::fmt::Debug for Instruction {
                         class_name,
                         size_name,
                         memory(&reg(dst), self.offset),
-                        imm(self.imm),
+                        self.imm,
                     )
                 }
                 class::EBPF_CLS_STX => {
@@ -239,13 +235,19 @@ impl Instructions {
 
 impl From<&[u8]> for Instructions {
     fn from(bytes: &[u8]) -> Self {
-        assert_eq!(bytes.len() % 8, 0);
+        assert_eq!(bytes.len() % INS_SIZE, 0);
         let num_ins = bytes.len() >> 3;
         let mut inner = Vec::with_capacity(num_ins);
 
-        for i in (0..bytes.len()).into_iter().step_by(8) {
+        let mut i = 0;
+
+        while i < bytes.len() {
             let r = Instruction::from(&bytes[i..]);
             inner.push(r);
+            if r.op == LDDW {
+                i += INS_SIZE;
+            }
+            i += INS_SIZE;
         }
 
         Self { inner }

@@ -1,5 +1,7 @@
 use assembler::Instruction;
 
+use crate::error::VmError;
+
 #[allow(dead_code)]
 const MB: usize = 1024 * 1024;
 const KB: usize = 1024;
@@ -44,12 +46,24 @@ impl VirtualMachine {
         self.regs[10] = stack_bottom + std::mem::size_of::<Stack>() as i64;
     }
 
-    pub fn exec(&mut self) -> Result<i64, ()> {
+    pub fn set_mem(&mut self, start: usize, size: usize, content: &[u8]) -> Result<(), VmError> {
+        if start >= self.virtual_mem.len() || start + size > self.virtual_mem.len() {
+            return Err(VmError::MemOutOfBound);
+        }
+
+        let dst = self.virtual_mem.as_mut_ptr();
+        unsafe {
+            let (raw, _size): (*const u8, usize) = std::mem::transmute(content);
+            std::ptr::copy(raw, dst, size);
+            Ok(())
+        }
+    }
+
+    pub fn exec(&mut self) -> Result<i64, VmError> {
         use assembler::op::*;
         self.reset();
 
         let reg = &mut self.regs;
-        // let stack = &mut self.stack;
 
         loop {
             let cur_pc = self.pc;
@@ -88,14 +102,18 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] *= reg[ins.src_reg() as usize] as i64;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
-                // TODO: check divide zero
                 DIV_IMM => {
-                    reg[ins.dst_reg() as usize] /= ins.imm as i64;
+                    dbg!(reg[ins.dst_reg() as usize], ins.imm);
                     reg[ins.dst_reg() as usize] &= U32_MASK;
+                    reg[ins.dst_reg() as usize] /= ins.imm & U32_MASK;
+                    // reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 DIV_REG => {
-                    reg[ins.dst_reg() as usize] /= reg[ins.src_reg() as usize] as i64;
+                    if reg[ins.src_reg() as usize] == 0 {
+                        return Err(VmError::DivZero);
+                    }
                     reg[ins.dst_reg() as usize] &= U32_MASK;
+                    reg[ins.dst_reg() as usize] /= (reg[ins.src_reg() as usize] as i64) & U32_MASK;
                 }
                 OR_IMM => {
                     reg[ins.dst_reg() as usize] |= ins.imm as i64;
@@ -177,7 +195,6 @@ impl VirtualMachine {
                 LE => {
                     todo!()
                 }
-
                 BE => {
                     todo!()
                 }
@@ -203,6 +220,9 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] /= ins.imm as i64;
                 }
                 DIV64_REG => {
+                    if reg[ins.src_reg() as usize] == 0 {
+                        return Err(VmError::DivZero);
+                    }
                     reg[ins.dst_reg() as usize] /= reg[ins.src_reg() as usize];
                 }
                 OR64_IMM => {
@@ -260,19 +280,27 @@ impl VirtualMachine {
                 }
                 // load/store operations
                 LDXW => {
+                    // println!("ldxw");
                     let addr = reg[ins.src_reg() as usize] + ins.offset as i64;
+                    // dbg!(unsafe { *(addr as *const i32) as i64 } & 0xffffffff);
                     reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i32) as i64 };
                 }
                 LDXH => {
+                    // println!("ldxh");
                     let addr = reg[ins.src_reg() as usize] + ins.offset as i64;
+                    // dbg!(unsafe { *(addr as *const i16) as i64 } & 0xffff);
                     reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i16) as i64 };
                 }
                 LDXB => {
+                    // println!("ldxb");
                     let addr = reg[ins.src_reg() as usize] + ins.offset as i64;
+                    // dbg!(unsafe { *(addr as *const i8) as i64 } & 0xff);
                     reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i8) as i64 };
                 }
                 LDXDW => {
+                    // println!("ldxdw");
                     let addr = reg[ins.src_reg() as usize] + ins.offset as i64;
+                    // dbg!(unsafe { *(addr as *const i64) as i64 });
                     reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i64) as i64 };
                 }
                 STW => {
@@ -516,5 +544,78 @@ mod tests {
         let mut runtime = VirtualMachine::new(inner);
         let r = runtime.exec();
         println!("{:?},{:?}", r, res);
+    }
+
+    #[test]
+    fn test_div() {
+        let (instructions, res) = test_utils::load_data("div32_imm");
+        // println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("div32_reg");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("div_zero");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("div64_imm");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+
+        let (instructions, res) = test_utils::load_data("div64_reg");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+    }
+
+    #[test]
+    fn test_lddw() {
+        let (instructions, res) = test_utils::load_data("lddw");
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}", r, res);
+    }
+
+    #[test]
+    fn test_ld() {
+        let (instructions, res) = test_utils::load_data("ldxw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("ldxh");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("ldxb");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
     }
 }

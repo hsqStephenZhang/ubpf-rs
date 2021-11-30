@@ -170,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_instructions() {
-        println!("{:?}", instruction.parse("mov32 r0, 0x0"),);
+        // println!("{:?}", instruction.parse("mov32 r0, 0x0"),);
         // println!("{:?}",instruction.parse("mov32 r1, 2"),);
         assert_eq!(
             instruction.parse("exit"),
@@ -206,12 +206,12 @@ mod tests {
         );
 
         assert_eq!(
-            instruction.parse("ldxb r2, [r1+12]"),
+            instruction.parse("ldxb r2, [r1+2]"),
             Ok((
                 "",
                 Instruction {
                     name: "ldxb".to_string(),
-                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 12)]),
+                    operands: Some(vec![Operand::Register(2), Operand::Memory(1, 2)]),
                 },
             ))
         );
@@ -304,6 +304,21 @@ mod tests {
                 vec![Instruction {
                     name: "ja".to_string(),
                     operands: Some(vec![Operand::Integer(1)]),
+                }]
+            ))
+        );
+    }
+
+    #[test]
+    fn test_lddw() {
+        // Jump offset operand.
+        assert_eq!(
+            instructions("lddw r0, 0x10000000c"),
+            Ok((
+                "",
+                vec![Instruction {
+                    name: "lddw".to_string(),
+                    operands: Some(vec![Operand::Register(0),Operand::Integer(0x10000000c)]),
                 }]
             ))
         );

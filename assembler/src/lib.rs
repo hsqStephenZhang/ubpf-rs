@@ -144,10 +144,10 @@ lazy_static::lazy_static! {
     // sizes of memory access
     pub static ref SIZES: HashMap<&'static str, u8>  = {
         let mut m = HashMap::new();
-        m.insert("w", 0);
-        m.insert("h", 1);
-        m.insert("b", 2);
-        m.insert("dw", 3);
+        m.insert("w", op::EBPF_SIZE_W);
+        m.insert("h", op::EBPF_SIZE_H);
+        m.insert("b", op::EBPF_SIZE_B);
+        m.insert("dw", op::EBPF_SIZE_DW);
         m
     };
 }

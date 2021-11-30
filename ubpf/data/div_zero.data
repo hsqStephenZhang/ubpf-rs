@@ -1,0 +1,4 @@
+lddw r0, 0x10000000c
+mov r1, 0
+div32 r0, r1
+exit

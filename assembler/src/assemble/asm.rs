@@ -133,12 +133,16 @@ pub(crate) fn assemble(src: &str) -> Result<Vec<Instruction>, ParseError> {
 
     for raw in raw_instructions {
         let name = raw.name.as_str();
+        // dbg!(instruction_map.get(name), raw.clone());
         match instruction_map.get(name) {
             Some(&(inst_type, op)) => {
                 let v = &raw.operands;
                 match encode(inst_type, op, v) {
-                    Ok(insn) => result.push(insn),
-                    Err(msg) => todo!(),
+                    Ok(insn) => {
+                        // dbg!(insn.clone());
+                        result.push(insn)
+                    }
+                    Err(msg) => panic!("{}", msg),
                 }
                 // Special case for lddw.
                 if let InstructionType::LoadImm = inst_type {
@@ -237,7 +241,14 @@ fn encode(
             insn(opc, dst, 0, 0, size)
         }
         (InstructionType::LoadImm, Operand::Register(dst), Operand::Integer(imm), Operand::Nil) => {
-            insn(opc, dst, 0, 0, (imm << 32) >> 32)
+            // println!("{:X}", imm);
+            // dbg!(opc == 0x18);
+            // handle lddw situation
+            if opc == 0x18 {
+                insn(opc, dst, 0, 0, imm)
+            } else {
+                insn(opc, dst, 0, 0, (imm << 32) >> 32)
+            }
         }
         _ => {
             dbg!(inst_type, a, b, c);
@@ -259,15 +270,10 @@ fn insn(op: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Instruction, P
         return Err(ParseError::InvalidOffset(off));
     }
 
-    if imm < -2147483648 || imm >= 2147483648 {
-        return Err(ParseError::InvalidImmediate(imm));
-    }
-
     let dst = dst as u8;
     let src = src as u8;
     let reg = (dst & 0xf) | (src << 4);
     let off = off as i16;
-    let imm = imm as i32;
     Ok(Instruction::new(op, reg, off, imm))
 }
 
@@ -296,5 +302,11 @@ mod tests {
         ];
         let disassemble_prog = Instructions::from(buffer.as_slice());
         println!("{:?}", disassemble_prog);
+    }
+
+    #[test]
+    fn t2() {
+        let prog = "lddw r0, 0x10000000c";
+        println!("{:?}", Instructions::from_asm(prog).unwrap());
     }
 }

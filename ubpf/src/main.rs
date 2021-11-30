@@ -1,5 +1,6 @@
 use structopt::StructOpt;
 
+mod error;
 mod utils;
 mod runtime;
 pub use runtime::*;

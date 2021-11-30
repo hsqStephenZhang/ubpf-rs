@@ -276,6 +276,7 @@ version = "0.1.0"
 dependencies = [
  "assembler",
  "structopt",
+ "thiserror",
 ]
 
 [[package]]
