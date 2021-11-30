@@ -590,7 +590,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ld() {
+    fn test_ldx() {
         let (instructions, res) = test_utils::load_data("ldxw");
         println!("{:?}", instructions.clone());
         let inner = instructions.into_vec();
@@ -617,5 +617,110 @@ mod tests {
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
         let r = runtime.exec();
         println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("ldxdw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+    }
+
+    #[test]
+    fn test_stx() {
+        let (instructions, res) = test_utils::load_data("stxw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("stxh");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("stxb");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("stxdw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+    }
+
+    #[test]
+    fn test_st(){
+        let (instructions, res) = test_utils::load_data("stw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("sth");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("stb");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("stdw");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let mem: [u8; 12] = [
+            0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
+        ];
+        runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res); 
     }
 }
