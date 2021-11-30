@@ -10,3 +10,10 @@ lazy_static = "1.4.0"
 goblin = "0.4"
 thiserror = "1.0.30"
 nom = "7"
+bytes = "1"
+
+[dependencies.iced-x86]
+version = "1.15.0"
+default-features = false
+# See below for all features
+features = ["std", "decoder", "masm"]

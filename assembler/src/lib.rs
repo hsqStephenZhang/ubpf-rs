@@ -4,6 +4,7 @@ mod assemble;
 mod disassemble;
 mod ebpf;
 mod error;
+mod jit;
 mod instruction;
 pub mod utils;
 
@@ -14,6 +15,7 @@ pub use asm_parser::{ident, instruction, instructions, integer, operand, operand
 pub use ebpf::{alu, class, op};
 pub use error::ElfError;
 pub use instruction::{Instruction, Instructions};
+pub use jit::*;
 
 lazy_static::lazy_static! {
 

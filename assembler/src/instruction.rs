@@ -7,7 +7,7 @@ use crate::{
     assemble::asm::assemble,
     class,
     error::ParseError,
-    utils::{memory, reg},
+    utils::{memory, reg}, JitBuilder,
 };
 
 const LDDW: u8 = 0x18;
@@ -266,5 +266,12 @@ impl std::fmt::Debug for Instructions {
             write!(f, "{}:{:?}\n", index, ins)?
         }
         Ok(())
+    }
+}
+
+impl Instructions{
+    pub fn jit(&self)->JitBuilder{
+        let a=JitBuilder::new();
+        a
     }
 }
