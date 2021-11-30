@@ -7,8 +7,8 @@ pub mod test_utils {
     use std::path::Path;
 
     pub fn load_data(name: &str) -> (Instructions, i64) {
-        let name1 = format!("data/{}.data", name);
-        let name2 = format!("data/{}.res", name);
+        let name1 = format!("../data/{}.data", name);
+        let name2 = format!("../data/{}.res", name);
 
         let instruction_file = Path::new(&name1);
         let result_file = Path::new(&name2);

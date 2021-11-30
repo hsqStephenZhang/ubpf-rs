@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn t1() {
-        let path = Path::new("data/hello_kern.o");
+        let path = Path::new("../data/hello_kern.o");
         let buffer = fs::read(path).unwrap();
         let elf = match Object::parse(&buffer).unwrap() {
             Object::Elf(elf) => elf,

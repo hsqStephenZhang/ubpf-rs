@@ -60,35 +60,55 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
             SUB_REG => {
                 builder.emit_alu32(0x29, src, dst);
             }
-            MUL_IMM => {}
-            MUL_REG => {}
-            DIV_IMM => {}
-            DIV_REG => {}
+            MUL_IMM | MUL_REG | DIV_IMM | DIV_REG | MOD_IMM | MOD_REG => {
+                todo!("muldivmod")
+            }
             OR_IMM => {
                 builder.emit_alu32_imm32(0x81, 1, dst, ins.imm as i32);
             }
-            OR_REG => {}
+            OR_REG => {
+                builder.emit_alu32(0x09, src, dst);
+            }
             AND_IMM => {
                 builder.emit_alu32_imm32(0x81, 4, dst, ins.imm as i32);
             }
-            AND_REG => {}
+            AND_REG => {
+                builder.emit_alu32(0x21, src, dst);
+            }
             LSH_IMM => {
                 builder.emit_alu32_imm32(0xc1, 4, dst, ins.imm as i32);
             }
-            LSH_REG => {}
+            LSH_REG => {
+                builder.emit_alu32(0xd3, 4, dst);
+            }
             RSH_IMM => {
                 builder.emit_alu32_imm32(0xc1, 5, dst, ins.imm as i32);
             }
-            RSH_REG => {}
-            NEG32 => {}
-            MOD_IMM => {}
-            MOD_REG => {}
-            XOR_IMM => {}
-            XOR_REG => {}
-            MOV_IMM => {}
-            MOV_REG => {}
-            ARSH_IMM => {}
-            ARSH_REG => {}
+            RSH_REG => {
+                builder.emit_alu32(0xd3, 5, dst);
+            }
+            NEG32 => {
+                builder.emit_alu32(0xf7, 3, dst);
+            }
+            XOR_IMM => {
+                builder.emit_alu32_imm32(0x81, 6, dst, ins.imm as i32);
+            }
+            XOR_REG => {
+                builder.emit_alu32(0x31, src, dst);
+            }
+            MOV_IMM => {
+                builder.emit_alu32_imm32(0xc7, 0, dst, ins.imm as i32);
+            }
+            MOV_REG => {
+                builder.emit_mov(src, dst);
+            }
+            ARSH_IMM => {
+                builder.emit_alu32_imm32(0xc1, 7, dst, ins.imm as i32);
+            }
+            ARSH_REG => {
+                builder.emit_mov(src, RCX);
+                builder.emit_alu32(0xd3, 7, dst);
+            }
             // TODO: LE and BE
             LE => {
                 todo!()
@@ -96,31 +116,69 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
             BE => {
                 todo!()
             }
-            ADD64_IMM => {}
-            ADD64_REG => {}
-            SUB64_IMM => {}
-            SUB64_REG => {}
-            MUL64_IMM => {}
-            MUL64_REG => {}
-            DIV64_IMM => {}
-            DIV64_REG => {}
-            OR64_IMM => {}
-            OR64_REG => {}
-            AND64_IMM => {}
-            AND64_REG => {}
-            LSH64_IMM => {}
-            LSH64_REG => {}
-            RSH64_IMM => {}
-            RSH64_REG => {}
-            NEG64 => {}
-            MOD64_IMM => {}
-            MOD64_REG => {}
-            XOR64_IMM => {}
-            XOR64_REG => {}
-            MOV64_IMM => {}
-            MOV64_REG => {}
-            ARSH64_IMM => {}
-            ARSH64_REG => {}
+            ADD64_IMM => {
+                builder.emit_alu64_imm32(0x81, 0, dst, ins.imm as i32);
+            }
+            ADD64_REG => {
+                builder.emit_alu64(0x01, src, dst);
+            }
+            SUB64_IMM => {
+                builder.emit_alu64_imm32(0x81, 5, dst, ins.imm as i32);
+            }
+            SUB64_REG => {
+                builder.emit_alu64(0x29, src, dst);
+            }
+            MUL64_IMM | MUL64_REG | DIV64_IMM | DIV64_REG | MOD64_IMM | MOD64_REG => {
+                todo!("muldivmod")
+            }
+            OR64_IMM => {
+                builder.emit_alu64_imm32(0x81, 1, dst, ins.imm as i32);
+            }
+            OR64_REG => {
+                builder.emit_alu64(0x09, src, dst);
+            }
+            AND64_IMM => {
+                builder.emit_alu64_imm32(0x81, 4, dst, ins.imm as i32);
+            }
+            AND64_REG => {
+                builder.emit_alu64(0x21, src, dst);
+            }
+            LSH64_IMM => {
+                builder.emit_alu64_imm32(0xc1, 4, dst, ins.imm as i32);
+            }
+            LSH64_REG => {
+                builder.emit_mov(src, RCX);
+                builder.emit_alu64(0xd3, 4, dst);
+            }
+            RSH64_IMM => {
+                builder.emit_alu64_imm32(0xc1, 5, dst, ins.imm as i32);
+            }
+            RSH64_REG => {
+                builder.emit_mov(src, RCX);
+                builder.emit_alu64(0xd3, 5, dst);
+            }
+            NEG64 => {
+                builder.emit_alu64(0xf7, 3, dst);
+            }
+            XOR64_IMM => {
+                builder.emit_alu64_imm32(0x31, 6, dst, ins.imm as i32);
+            }
+            XOR64_REG => {
+                builder.emit_alu64(0x09, src, dst);
+            }
+            MOV64_IMM => {
+                builder.emit_alu64_imm32(0xc7, 0, dst, ins.imm as i32);
+            }
+            MOV64_REG => {
+                builder.emit_mov(src, dst);
+            }
+            ARSH64_IMM => {
+                builder.emit_alu64_imm32(0xc1, 7, dst, ins.imm as i32);
+            }
+            ARSH64_REG => {
+                builder.emit_mov(src, RCX);
+                builder.emit_alu64(0xd3, 7, dst);
+            }
             // load/store operations
             LDDW => {}
             LDXW => {}
@@ -135,31 +193,104 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
             STXH => {}
             STXB => {}
             STXDW => {}
-            JA => {}
-            JEQ_IMM => {}
-            JEQ_REG => {}
-            JGT_IMM => {}
-            JGT_REG => {}
-            JGE_IMM => {}
-            JGE_REG => {}
-            JSET_REG => {}
-            JSET_IMM => {}
-            JSGT_IMM => {}
-            JSGT_REG => {}
-            JSGE_IMM => {}
-            JSGE_REG => {}
-            JNE_IMM => {}
-            JNE_REG => {}
-            JLT_IMM => {}
-            JLT_REG => {}
-            JLE_IMM => {}
-            JLE_REG => {}
-            JSLT_IMM => {}
-            JSLT_REG => {}
-            JSLE_IMM => {}
-            JSLE_REG => {}
+            JA => {
+                builder.emit_jmp(target_pc as i32);
+            }
+            JEQ_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x84, target_pc as i32);
+            }
+            JEQ_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x84, target_pc as i32);
+            }
+            JGT_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x87, target_pc as i32);
+            }
+            JGT_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x87, target_pc as i32);
+            }
+            JGE_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x83, target_pc as i32);
+            }
+            JGE_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x83, target_pc as i32);
+            }
+            JLT_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x82, target_pc as i32);
+            }
+            JLT_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x82, target_pc as i32);
+            }
+            JLE_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x86, target_pc as i32);
+            }
+            JLE_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x86, target_pc as i32);
+            }
+            JSET_IMM => {
+                builder.emit_alu64_imm32(0xf7, 0, dst, ins.imm as i32);
+                builder.emit_jcc(0x85, target_pc as i32);
+            }
+            JSET_REG => {
+                builder.emit_alu64(0x85, src, dst);
+                builder.emit_jcc(0x85, target_pc as i32);
+            }
+            JNE_IMM => {
+                builder.emit_cmp_imm32(dst, ins.imm as i32);
+                builder.emit_jcc(0x85, target_pc as i32);
+            }
+            JNE_REG => {
+                builder.emit_alu64(0x85, src, dst);
+                builder.emit_jcc(0x85, target_pc as i32);
+            }
+            JSGT_IMM => {
+                builder.emit_cmp_imm32( dst, ins.imm as i32);
+                builder.emit_jcc(0x8f, target_pc as i32);
+            }
+            JSGT_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x8f, target_pc as i32);
+            }
+            JSGE_IMM => {
+                builder.emit_cmp_imm32( dst, ins.imm as i32);
+                builder.emit_jcc(0x8d, target_pc as i32);
+            }
+            JSGE_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x8d, target_pc as i32);
+            }
+            JSLT_IMM => {
+                builder.emit_cmp_imm32( dst, ins.imm as i32);
+                builder.emit_jcc(0x8c, target_pc as i32);
+            }
+            JSLT_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x8c, target_pc as i32);
+            }
+            JSLE_IMM => {
+                builder.emit_cmp_imm32( dst, ins.imm as i32);
+                builder.emit_jcc(0x8e, target_pc as i32);
+            }
+            JSLE_REG => {
+                builder.emit_cmp(src, dst);
+                builder.emit_jcc(0x8e, target_pc as i32);
+            }
+
             // TODO: call functions(maybe jit)
-            CALL => {}
+            CALL => {
+                builder.emit_mov(R9, RCX);
+                // FIXME: call extern functions
+                todo!()
+            }
             EXIT => {}
             _ => {}
         }

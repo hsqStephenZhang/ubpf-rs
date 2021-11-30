@@ -68,6 +68,7 @@ impl From<&[u8]> for Instruction {
         let mut regs = 0;
         let mut offset = 0;
         // if current instruction is `lddx`, we should also load the next instruction's imm
+        // FIXME: not sure if we should load next the instruction when facing lddx
         let mut imm = 0;
 
         unsafe {
@@ -87,8 +88,6 @@ impl From<&[u8]> for Instruction {
                 std::ptr::copy(src as *const u8, &mut tmp as *mut _ as _, 4);
                 imm = ((tmp as i64) << 32) | imm;
             }
-
-            dbg!(imm);
         }
 
         Self {
