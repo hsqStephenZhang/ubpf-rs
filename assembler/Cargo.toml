@@ -11,6 +11,7 @@ goblin = "0.4"
 thiserror = "1.0.30"
 nom = "7"
 bytes = "1"
+libc = "0.2.*"
 
 [dependencies.iced-x86]
 version = "1.15.0"

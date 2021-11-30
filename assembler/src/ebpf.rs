@@ -16,6 +16,7 @@ pub mod alu {
 
 pub mod op {
 
+
     use super::class::*;
 
     // masks
@@ -26,40 +27,40 @@ pub mod op {
     pub const EBPF_MEM: u8 = 0x60;
     pub const EBPF_XADD: u8 = 0xc0;
 
-    pub const EBPF_ADD   : u8 = 0x00;
-    pub const EBPF_SUB   : u8 = 0x10;
-    pub const EBPF_MUL   : u8 = 0x20;
-    pub const EBPF_DIV   : u8 = 0x30;
-    pub const EBPF_OR    : u8 = 0x40;
-    pub const EBPF_AND   : u8 = 0x50;
-    pub const EBPF_LSH   : u8 = 0x60;
-    pub const EBPF_RSH   : u8 = 0x70;
-    pub const EBPF_NEG   : u8 = 0x80;
-    pub const EBPF_MOD   : u8 = 0x90;
-    pub const EBPF_XOR   : u8 = 0xa0;
-    pub const EBPF_MOV   : u8 = 0xb0;
-    pub const EBPF_ARSH  : u8 = 0xc0;
-    pub const EBPF_END   : u8 = 0xd0;
+    pub const EBPF_ADD: u8 = 0x00;
+    pub const EBPF_SUB: u8 = 0x10;
+    pub const EBPF_MUL: u8 = 0x20;
+    pub const EBPF_DIV: u8 = 0x30;
+    pub const EBPF_OR: u8 = 0x40;
+    pub const EBPF_AND: u8 = 0x50;
+    pub const EBPF_LSH: u8 = 0x60;
+    pub const EBPF_RSH: u8 = 0x70;
+    pub const EBPF_NEG: u8 = 0x80;
+    pub const EBPF_MOD: u8 = 0x90;
+    pub const EBPF_XOR: u8 = 0xa0;
+    pub const EBPF_MOV: u8 = 0xb0;
+    pub const EBPF_ARSH: u8 = 0xc0;
+    pub const EBPF_END: u8 = 0xd0;
 
-    pub const EBPF_JA    : u8 = 0x00;
-    pub const EBPF_JEQ   : u8 = 0x10;
-    pub const EBPF_JGT   : u8 = 0x20;
-    pub const EBPF_JGE   : u8 = 0x30;
-    pub const EBPF_JSET  : u8 = 0x40;
-    pub const EBPF_JNE   : u8 = 0x50;
-    pub const EBPF_JSGT  : u8 = 0x60;
-    pub const EBPF_JSGE  : u8 = 0x70;
-    pub const EBPF_CALL  : u8 = 0x80;
-    pub const EBPF_EXIT  : u8 = 0x90;
-    pub const EBPF_JLT   : u8 = 0xa0;
-    pub const EBPF_JLE   : u8 = 0xb0;
-    pub const EBPF_JSLT  : u8 = 0xc0;
-    pub const EBPF_JSLE  : u8 = 0xd0;
+    pub const EBPF_JA: u8 = 0x00;
+    pub const EBPF_JEQ: u8 = 0x10;
+    pub const EBPF_JGT: u8 = 0x20;
+    pub const EBPF_JGE: u8 = 0x30;
+    pub const EBPF_JSET: u8 = 0x40;
+    pub const EBPF_JNE: u8 = 0x50;
+    pub const EBPF_JSGT: u8 = 0x60;
+    pub const EBPF_JSGE: u8 = 0x70;
+    pub const EBPF_CALL: u8 = 0x80;
+    pub const EBPF_EXIT: u8 = 0x90;
+    pub const EBPF_JLT: u8 = 0xa0;
+    pub const EBPF_JLE: u8 = 0xb0;
+    pub const EBPF_JSLT: u8 = 0xc0;
+    pub const EBPF_JSLE: u8 = 0xd0;
 
     pub const U32_MASK: i64 = 0x00000000ffffffff;
 
-    pub const MASK: u8 = 0x07;
-    pub const EBPF_SALU_OP_MASK: u8 = 0xf0;
+    pub const CLS_MASK: u8 = 0x07;
+    pub const ALU_OP_MASK: u8 = 0xf0;
 
     pub const EBPF_SRC_IMM: u8 = 0x00;
     pub const EBPF_SRC_REG: u8 = 0x08;
@@ -170,6 +171,8 @@ pub mod op {
     pub const JSLE_IMM: u8 = EBPF_CLS_JMP | EBPF_SRC_IMM | EBPF_JSLE;
     pub const JSLE_REG: u8 = EBPF_CLS_JMP | EBPF_SRC_REG | EBPF_JSLE;
 }
+
+pub const DEFAULT_STACK_SIZE: usize = 4096;
 
 #[test]
 fn t1() {

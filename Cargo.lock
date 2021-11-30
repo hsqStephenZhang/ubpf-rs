@@ -19,6 +19,7 @@ dependencies = [
  "goblin",
  "iced-x86",
  "lazy_static",
+ "libc",
  "nom",
  "thiserror",
 ]
