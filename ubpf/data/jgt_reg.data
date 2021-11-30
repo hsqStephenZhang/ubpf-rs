@@ -7,3 +7,4 @@ jgt r1, r1, +1
 jgt r1, r3, +1
 exit
 mov r0, 1
+exit

@@ -8,5 +8,4 @@ mov32 r0, 1
 mov r1, r2
 jsge r1, r2, +1
 mov32 r0, 2
-
 exit

@@ -67,6 +67,7 @@ impl VirtualMachine {
 
         loop {
             let cur_pc = self.pc;
+            dbg!(cur_pc);
             let ins = &self.instructions[cur_pc as usize];
             self.pc += 1;
 
@@ -349,56 +350,69 @@ impl VirtualMachine {
                     }
                 }
                 JGT_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm as i64 | U32_MASK) as u64 {
+                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm as i64 & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGT_REG => {
                     if reg[ins.dst_reg() as usize] as u64
-                        > (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                        > (reg[ins.src_reg() as usize] & U32_MASK) as u64
                     {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGE_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm as i64 | U32_MASK) as u64 {
+                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm as i64 & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JGE_REG => {
                     if reg[ins.dst_reg() as usize] as u64
-                        >= (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                        >= (reg[ins.src_reg() as usize] & U32_MASK) as u64
                     {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSET_REG => {
-                    if reg[ins.dst_reg() as usize] & reg[ins.src_reg() as usize] != 0 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(reg[ins.src_reg() as usize]);
+                    if a & b != 0 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSET_IMM => {
-                    if reg[ins.dst_reg() as usize] == ins.imm as i64 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(ins.imm as i64);
+                    if a & b != 0 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGT_IMM => {
-                    if reg[ins.dst_reg() as usize] > ins.imm as i64 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(ins.imm as i64);
+                    if a > b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGT_REG => {
-                    if reg[ins.dst_reg() as usize] > reg[ins.src_reg() as usize] {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(reg[ins.src_reg() as usize]);
+                    if a > b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGE_IMM => {
-                    if reg[ins.dst_reg() as usize] >= ins.imm as i64 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(ins.imm as i64);
+                    if a >= b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGE_REG => {
-                    if reg[ins.dst_reg() as usize] >= reg[ins.src_reg() as usize] {
+                    dbg!(reg[ins.dst_reg() as usize], reg[ins.src_reg() as usize]);
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(reg[ins.src_reg() as usize]);
+                    if a >= b {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -413,46 +427,56 @@ impl VirtualMachine {
                     }
                 }
                 JLT_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm as i64 | U32_MASK) as u64 {
+                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm as i64 & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLT_REG => {
                     if (reg[ins.dst_reg() as usize] as u64)
-                        < (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                        < (reg[ins.src_reg() as usize] & U32_MASK) as u64
                     {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLE_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm as i64 | U32_MASK) as u64 {
+                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm as i64 & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JLE_REG => {
                     if (reg[ins.dst_reg() as usize] as u64)
-                        <= (reg[ins.src_reg() as usize] | U32_MASK) as u64
+                        <= (reg[ins.src_reg() as usize] & U32_MASK) as u64
                     {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLT_IMM => {
-                    if reg[ins.dst_reg() as usize] < ins.imm as i64 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(ins.imm as i64);
+                    dbg!(a, b);
+                    if a < b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLT_REG => {
-                    if reg[ins.dst_reg() as usize] < reg[ins.src_reg() as usize] {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(reg[ins.src_reg() as usize]);
+                    dbg!(a, b);
+                    if a < b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLE_IMM => {
-                    if reg[ins.dst_reg() as usize] <= ins.imm as i64 {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(ins.imm as i64);
+                    if a <= b {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSLE_REG => {
-                    if reg[ins.dst_reg() as usize] <= reg[ins.src_reg() as usize] {
+                    let a = sign_extend(reg[ins.dst_reg() as usize]);
+                    let b = sign_extend(reg[ins.src_reg() as usize]);
+                    if a <= b {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -476,6 +500,15 @@ impl VirtualMachine {
             return;
         }
     }
+}
+
+#[inline]
+pub fn sign_extend(origin: i64) -> i64 {
+    if (origin >> 31) & 0x1 == 1 {
+        return ((origin as u64) | 0xffffffff00000000) as i64;
+    }
+
+    origin & 0x00000000ffffffff
 }
 
 /**
@@ -514,6 +547,13 @@ mod tests {
 
     use super::*;
     use crate::test_utils;
+
+    #[test]
+    fn test_sign_extend() {
+        let a: i64 = 0xfffffffe;
+        let b = sign_extend(a);
+        println!("{:?},{}", b, -1);
+    }
 
     #[test]
     fn test_add() {
@@ -678,7 +718,7 @@ mod tests {
     }
 
     #[test]
-    fn test_st(){
+    fn test_st() {
         let (instructions, res) = test_utils::load_data("stw");
         println!("{:?}", instructions.clone());
         let inner = instructions.into_vec();
@@ -721,6 +761,128 @@ mod tests {
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
         let r = runtime.exec();
-        println!("{:?},{:?}\n\n-------", r, res); 
+        println!("{:?},{:?}\n\n-------", r, res);
+    }
+
+    #[test]
+    fn test_jmp() {
+        let (instructions, res) = test_utils::load_data("ja");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jeq_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jeq_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jge_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jgt_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jgt_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jle_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jset_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsge_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsge_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsge_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsgt_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsgt_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsle_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jsle_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jslt_reg");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
+
+        let (instructions, res) = test_utils::load_data("jslt_imm");
+        println!("{:?}", instructions.clone());
+        let inner = instructions.into_vec();
+        let mut runtime = VirtualMachine::new(inner);
+        let r = runtime.exec();
+        println!("{:?},{:?}\n\n-------", r, res);
     }
 }

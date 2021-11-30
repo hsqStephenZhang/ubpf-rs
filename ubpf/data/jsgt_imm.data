@@ -5,3 +5,4 @@ mov32 r0, 1
 mov32 r1, 0
 jsgt r1, 0xffffffff, +1
 mov32 r0, 2
+exit
