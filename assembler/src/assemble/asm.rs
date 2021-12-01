@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    asm_parser::{instructions, Operand},
     class,
     error::ParseError,
     op, Instruction,
 };
+
+use super::{Operand, instructions};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {

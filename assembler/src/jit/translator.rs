@@ -1,4 +1,4 @@
-use crate::{class::EBPF_CLS_ALU64, ebpf::DEFAULT_STACK_SIZE, op::*, Instructions, JitBuilder};
+use crate::{class::EBPF_CLS_ALU64, ebpf::DEFAULT_STACK_SIZE, op::*, Instruction, JitBuilder};
 
 pub const RAX: i32 = 0;
 pub const RCX: i32 = 1;
@@ -19,7 +19,10 @@ pub const R15: i32 = 15;
 
 pub const REGISTER_MAP: [i32; 11] = [RAX, RDI, RSI, RDX, R9, R8, RBX, R13, R14, R15, RBP];
 
-pub fn translate(instructions: Instructions) -> Vec<u8> {
+const TARGET_PC_EXIT: i32 = -1;
+const TARGET_PC_DIV_BY_ZERO: i32 = -2;
+
+pub fn translate(inner: &Vec<Instruction>) -> Vec<u8> {
     let mut builder = JitBuilder::new();
 
     // save stack frame
@@ -37,9 +40,10 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
         builder.emit_mov(RDI, map_register(1));
     }
 
-    let inner = instructions.into_vec();
-    for (index, ins) in inner.into_iter().enumerate() {
+    let num_ins = inner.len();
+    for (index, ins) in inner.iter().enumerate() {
         // TODO: pc locations
+        builder.pc_locations.push(builder.offset);
 
         let dst = map_register(ins.dst_reg() as i32);
         let src = map_register(ins.src_reg() as i32);
@@ -201,21 +205,64 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
             }
             // load/store operations
             LDDW => {
-                dbg!("lddw");
                 builder.emit_load_imm(dst, ins.imm);
             }
-            LDXW => {}
-            LDXH => {}
-            LDXB => {}
-            LDXDW => {}
-            STW => {}
-            STH => {}
-            STB => {}
-            STDW => {}
-            STXW => {}
-            STXH => {}
-            STXB => {}
-            STXDW => {}
+            LDXW => {
+                builder.emit_load(crate::OperandSize::S32, src, dst, ins.offset as i32);
+            }
+            LDXH => {
+                builder.emit_load(crate::OperandSize::S16, src, dst, ins.offset as i32);
+            }
+            LDXB => {
+                builder.emit_load(crate::OperandSize::S8, src, dst, ins.offset as i32);
+            }
+            LDXDW => {
+                builder.emit_load(crate::OperandSize::S64, src, dst, ins.offset as i32);
+            }
+            STW => {
+                builder.emit_store_imm32(
+                    crate::OperandSize::S32,
+                    dst,
+                    ins.offset as i32,
+                    ins.imm as i32,
+                );
+            }
+            STH => {
+                builder.emit_store_imm32(
+                    crate::OperandSize::S16,
+                    dst,
+                    ins.offset as i32,
+                    ins.imm as i32,
+                );
+            }
+            STB => {
+                builder.emit_store_imm32(
+                    crate::OperandSize::S8,
+                    dst,
+                    ins.offset as i32,
+                    ins.imm as i32,
+                );
+            }
+            STDW => {
+                builder.emit_store_imm32(
+                    crate::OperandSize::S64,
+                    dst,
+                    ins.offset as i32,
+                    ins.imm as i32,
+                );
+            }
+            STXW => {
+                builder.emit_store(crate::OperandSize::S32, src, dst, ins.offset as i32);
+            }
+            STXH => {
+                builder.emit_store(crate::OperandSize::S16, src, dst, ins.offset as i32);
+            }
+            STXB => {
+                builder.emit_store(crate::OperandSize::S8, src, dst, ins.offset as i32);
+            }
+            STXDW => {
+                builder.emit_store(crate::OperandSize::S64, src, dst, ins.offset as i32);
+            }
             JA => {
                 builder.emit_jmp(target_pc as i32);
             }
@@ -307,17 +354,22 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
                 builder.emit_cmp(src, dst);
                 builder.emit_jcc(0x8e, target_pc as i32);
             }
-
             // TODO: call functions(maybe jit)
             CALL => {
                 builder.emit_mov(R9, RCX);
                 // FIXME: call extern functions
                 todo!()
             }
-            EXIT => {}
+            EXIT => {
+                if index != num_ins - 1 {
+                    builder.emit_jmp(TARGET_PC_EXIT);
+                }
+            }
             _ => {}
         }
     }
+
+    builder.exit_location = builder.offset;
 
     builder.emit_pop(R15);
     builder.emit_pop(R14);
@@ -327,13 +379,42 @@ pub fn translate(instructions: Instructions) -> Vec<u8> {
     builder.emit1(0xc3); /* ret */
 
     let content = &builder.buffer[..];
-    content.into()
+    let mut content: Vec<u8> = content.into();
+
+    dbg!(builder.jumps.clone());
+    dbg!(builder.pc_locations.clone());
+
+    for jump in builder.jumps.iter() {
+        let target_location = if jump.target_pc == TARGET_PC_EXIT {
+            builder.exit_location
+        } else if jump.target_pc == TARGET_PC_DIV_BY_ZERO {
+            unimplemented!("todo: div by zero check");
+        } else {
+            builder.pc_locations[jump.target_pc as usize]
+        };
+
+        dbg!(target_location, jump);
+
+        let relative = target_location - jump.offset_location - std::mem::size_of::<i32>();
+
+        unsafe {
+            let p = content.as_mut_ptr();
+            let offset_ptr = (p as usize + jump.offset_location) as *mut i32;
+            let content: &[u8] = std::mem::transmute((offset_ptr, 10));
+            println!("{:X?}", content);
+            *offset_ptr = relative as i32;
+            println!("{:X?}", content);
+        }
+    }
+
+    content
 }
 
 fn map_register(reg: i32) -> i32 {
     REGISTER_MAP[reg as usize]
 }
 
+#[allow(unused_variables)]
 fn muldivmod(builder: &mut JitBuilder, opcode: u8, src: i32, dst: i32, imm: i32, pc: i64) {
     // MUL_IMM | MUL_REG | DIV_IMM | DIV_REG | MOD_IMM | MOD_REG
     let mul_res = (opcode & ALU_OP_MASK) == (MUL_IMM & ALU_OP_MASK);
@@ -341,19 +422,20 @@ fn muldivmod(builder: &mut JitBuilder, opcode: u8, src: i32, dst: i32, imm: i32,
     let mod_res = (opcode & ALU_OP_MASK) == (MOD_IMM & ALU_OP_MASK);
     let is64 = (opcode & CLS_MASK) == EBPF_CLS_ALU64;
 
-    if div_res || mod_res {
-        builder.emit_load_imm(RCX, pc);
+    // TODO: divide by zero check
+    // if div_res || mod_res {
+    //     builder.emit_load_imm(RCX, pc);
 
-        /* test src,src */
-        if is64 {
-            builder.emit_alu64(0x85, src, src);
-        } else {
-            builder.emit_alu32(0x85, src, src);
-        }
+    //     /* test src,src */
+    //     if is64 {
+    //         builder.emit_alu64(0x85, src, src);
+    //     } else {
+    //         builder.emit_alu32(0x85, src, src);
+    //     }
 
-        /* jz div_by_zero */
-        builder.emit_jcc(0x84, -2);
-    }
+    //     /* jz div_by_zero */
+    //     builder.emit_jcc(0x84, TARGET_PC_DIV_BY_ZERO);
+    // }
 
     if dst != RAX {
         builder.emit_push(RAX);
@@ -406,7 +488,7 @@ mod tests {
     #[allow(dead_code)]
     fn test_translate(prog_name: &str) {
         let (instructions, res) = load_data(prog_name);
-        let r = translate(instructions);
+        let r = translate(&instructions.into());
         display(&r);
         println!("----\nres:{:?}\n\n", res);
     }
@@ -420,9 +502,9 @@ mod tests {
         return (n + (PAGE_SIZE - 1)) & !(PAGE_SIZE - 1);
     }
 
-    fn test_suite(prog_name: &str) {
+    fn test_suite(prog_name: &str, memory: (*const u8, usize)) {
         let (instructions, res) = load_data(prog_name);
-        let r = translate(instructions);
+        let r = translate(&instructions.into());
         display(&r);
         let size = page_align(r.len());
         unsafe {
@@ -438,32 +520,109 @@ mod tests {
             let (src, slen) = std::mem::transmute(r.as_bytes());
             std::ptr::copy(src, fn_base, slen);
 
-            let f: fn() -> i64 = std::mem::transmute(fn_base);
-            let r = f();
+            let f: fn(*const u8, usize) -> i64 = std::mem::transmute(fn_base);
+            let r = f(memory.0, memory.1);
             assert_eq!(r, res);
+
+            munmap(fn_base, size);
         }
+    }
+
+    fn null_mem() -> (*const u8, usize) {
+        (0 as _, 0)
     }
 
     #[test]
     fn test_add() {
-        test_suite("add");
+        test_suite("add", null_mem());
     }
 
     #[test]
     fn test_div32() {
-        test_suite("div32_imm");
-        test_suite("div32_reg");
+        test_suite("div32_imm", null_mem());
+        test_suite("div32_reg", null_mem());
     }
 
     #[test]
     fn test_div64() {
-        test_suite("div64_imm");
-        test_suite("div64_reg");
+        test_suite("div64_imm", null_mem());
+        test_suite("div64_reg", null_mem());
     }
 
     #[test]
     fn test_jmp() {
-        test_suite("ja");
-        // test_suite("div64_reg");
+        test_suite("ja", null_mem());
+
+        test_suite("jeq_imm", null_mem());
+        test_suite("jeq_reg", null_mem());
+
+        test_suite("jge_imm", null_mem());
+        test_suite("jgt_imm", null_mem());
+
+        test_suite("jgt_reg", null_mem());
+
+        test_suite("jle_imm", null_mem());
+
+        test_suite("jset_reg", null_mem());
+
+        test_suite("jsge_reg", null_mem());
+        test_suite("jsge_imm", null_mem());
+
+        test_suite("jsgt_reg", null_mem());
+        test_suite("jsgt_imm", null_mem());
+
+        test_suite("jsle_reg", null_mem());
+        test_suite("jsle_imm", null_mem());
+
+        test_suite("jslt_reg", null_mem());
+        test_suite("jslt_imm", null_mem());
+    }
+
+    #[test]
+    fn test_memory() {
+        let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("ldxw", mem);
+
+        let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("ldxh", mem);
+
+        let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("ldxb", mem);
+
+        let raw: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("ldxdw", mem);
+    }
+    
+    #[test]
+    fn test_ldx() {
+        let raw: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("stxw", mem);
+
+        let raw: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("stxh", mem);
+
+        let raw: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("stxb", mem);
+
+        let raw: [u8; 12] = [
+            0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
+        ];
+        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        test_suite("stxdw", mem);
     }
 }

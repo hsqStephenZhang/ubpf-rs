@@ -1,11 +1,13 @@
-use bytes::{BufMut, BytesMut};
-
-pub mod translate;
+mod translator;
 pub mod utils;
 
-pub use translate::{R10, R11, R12, R13, R14, R15, R8, R9, RBP, RBX, RCX, RDI, RDX, RSI, RSP};
+pub use translator::{
+    translate, R10, R11, R12, R13, R14, R15, R8, R9, RBP, RBX, RCX, RDI, RDX, RSI, RSP,
+};
 
-use self::translate::RAX;
+use bytes::{BufMut, BytesMut};
+use crate::ebpf::DEFAULT_INS_NUM;
+use self::translator::RAX;
 
 #[derive(Debug, Clone)]
 pub enum OperandSize {
@@ -16,7 +18,7 @@ pub enum OperandSize {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Jmp {
     offset_location: usize,
     target_pc: i32,
@@ -29,7 +31,6 @@ pub struct JitBuilder {
     pc_locations: Vec<usize>,
     exit_location: usize,
     jumps: Vec<Jmp>,
-    num_jmp: usize,
     offset: usize,
 }
 
@@ -38,10 +39,9 @@ impl JitBuilder {
     pub fn new() -> JitBuilder {
         Self {
             buffer: BytesMut::new(),
-            pc_locations: Vec::new(),
+            pc_locations: Vec::with_capacity(DEFAULT_INS_NUM),
             exit_location: 0,
-            jumps: Vec::new(),
-            num_jmp: 0,
+            jumps: Vec::with_capacity(DEFAULT_INS_NUM),
             offset: 0,
         }
     }
@@ -49,6 +49,7 @@ impl JitBuilder {
     #[inline(always)]
     pub fn emit1(&mut self, val: u8) {
         self.buffer.put_u8(val);
+        self.offset += 1;
     }
 
     #[inline(always)]
@@ -56,6 +57,7 @@ impl JitBuilder {
         let buffer: [u8; 2] = unsafe { std::mem::transmute(val) };
         self.buffer.put_u8(buffer[0]);
         self.buffer.put_u8(buffer[1]);
+        self.offset += 2;
     }
 
     #[inline(always)]
@@ -69,6 +71,7 @@ impl JitBuilder {
         self.buffer.put_u8(buffer[1]);
         self.buffer.put_u8(buffer[2]);
         self.buffer.put_u8(buffer[3]);
+        self.offset += 4;
     }
 
     #[inline(always)]
@@ -82,15 +85,16 @@ impl JitBuilder {
         self.buffer.put_u8(buffer[5]);
         self.buffer.put_u8(buffer[6]);
         self.buffer.put_u8(buffer[7]);
+        self.offset += 8;
     }
 
     #[allow(unused_variables)]
     #[inline(always)]
     pub fn emit_jump_offset(&mut self, target_pc: i32) {
-        // let jmp = &mut self.jumps[self.num_jmp];
-        // self.num_jmp += 1;
-        // jmp.offset_location = self.offset;
-        // jmp.target_pc = target_pc;
+        let mut jmp = Jmp::default();
+        jmp.offset_location = self.offset;
+        jmp.target_pc = target_pc;
+        self.jumps.push(jmp);
         self.emit4(0); // jmp place holder
     }
 
@@ -108,7 +112,7 @@ impl JitBuilder {
     #[inline(always)]
     pub fn emit_basic_rex(&mut self, w: i32, src: i32, dst: i32) {
         if w != 0 || (src & 8) != 0 || (dst & 8) != 0 {
-            self.emit_rex(w, bit(src & 8), 0, bit(dst & 8));
+            self.emit_rex(w, bit01(src & 8), 0, bit01(dst & 8));
         }
     }
 
@@ -222,8 +226,8 @@ impl JitBuilder {
 
     #[inline(always)]
     pub fn emit_load_imm(&mut self, dst: i32, imm: i64) {
-        // dbg!(imm >= i32::MIN as i64 && imm >= i32::MAX as i64);
-        if imm >= i32::MIN as i64 && imm >= i32::MAX as i64 {
+        dbg!(imm >= i32::MIN as i64 && imm >= i32::MAX as i64);
+        if imm >= i32::MIN as i64 && imm <= i32::MAX as i64 {
             self.emit_alu64_imm32(0xc7, 0, dst, imm as i32);
         } else {
             self.emit_basic_rex(1, 0, dst);
@@ -251,7 +255,7 @@ impl JitBuilder {
         };
 
         if (rexw | src & 8 | dst & 8 | a) != 0 {
-            self.emit_rex(rexw, bit(src & 8), 0, bit(dst & 8));
+            self.emit_rex(rexw, bit01(src & 8), 0, bit01(dst & 8));
         }
 
         let b = match size {
@@ -320,7 +324,7 @@ impl JitBuilder {
 }
 
 #[inline(always)]
-fn bit(val: i32) -> i32 {
+fn bit01(val: i32) -> i32 {
     if val & 8 == 0 {
         0
     } else {

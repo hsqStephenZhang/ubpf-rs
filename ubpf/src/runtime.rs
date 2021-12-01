@@ -1,4 +1,4 @@
-use assembler::Instruction;
+use assembler::{translate, Instruction};
 
 use crate::error::VmError;
 
@@ -22,6 +22,7 @@ pub struct VirtualMachine {
     regs: Regs,
     stack: Stack,
     virtual_mem: Box<Mem>,
+    jit_fn: Option<Vec<u8>>,
 }
 
 impl VirtualMachine {
@@ -33,6 +34,7 @@ impl VirtualMachine {
             regs: [0; NUM_REGS],
             stack: [0; STACK_SIZE],
             virtual_mem: Box::new([0; MEM_SIZE]),
+            jit_fn: None,
         }
     }
 
@@ -59,7 +61,22 @@ impl VirtualMachine {
         }
     }
 
-    pub fn exec(&mut self) -> Result<i64, VmError> {
+    pub fn exec(&mut self, jit_enable: bool) -> Result<i64, VmError> {
+        if jit_enable {
+            self.exec_jit()
+        } else {
+            self.exec_interpretor()
+        }
+    }
+
+    pub fn exec_jit(&mut self) -> Result<i64, VmError> {
+        let jited_instructions = translate(&self.instructions);
+        self.jit_fn = Some(jited_instructions);
+
+        todo!()
+    }
+
+    pub fn exec_interpretor(&mut self) -> Result<i64, VmError> {
         use assembler::op::*;
         self.reset();
 
@@ -558,31 +575,31 @@ mod tests {
     #[test]
     fn test_add() {
         let (instructions, res) = test_utils::load_data("add");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
     }
 
     #[test]
     fn test_mul() {
         let (instructions, res) = test_utils::load_data("mul32_imm");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("mul32_reg");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("mul32_overflow");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
 
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
     }
 
@@ -590,42 +607,42 @@ mod tests {
     fn test_div() {
         let (instructions, res) = test_utils::load_data("div32_imm");
         // println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("div32_reg");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("div_zero");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("div64_imm");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
 
         let (instructions, res) = test_utils::load_data("div64_reg");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
     }
 
     #[test]
     fn test_lddw() {
         let (instructions, res) = test_utils::load_data("lddw");
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}", r, res);
     }
 
@@ -633,40 +650,40 @@ mod tests {
     fn test_ldx() {
         let (instructions, res) = test_utils::load_data("ldxw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("ldxh");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("ldxb");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("ldxdw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
     }
 
@@ -674,46 +691,46 @@ mod tests {
     fn test_stx() {
         let (instructions, res) = test_utils::load_data("stxw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("stxh");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("stxb");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("stxdw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
     }
 
@@ -721,46 +738,46 @@ mod tests {
     fn test_st() {
         let (instructions, res) = test_utils::load_data("stw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("sth");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("stb");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("stdw");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
         let mem: [u8; 12] = [
             0xaa, 0xbb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xcc, 0xdd,
         ];
         runtime.set_mem(0, mem.len(), mem.as_slice()).unwrap();
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
     }
 
@@ -768,121 +785,121 @@ mod tests {
     fn test_jmp() {
         let (instructions, res) = test_utils::load_data("ja");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jeq_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jeq_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jge_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jgt_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jgt_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jle_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jset_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsge_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsge_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsge_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsgt_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsgt_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsle_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jsle_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jslt_reg");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
 
         let (instructions, res) = test_utils::load_data("jslt_imm");
         println!("{:?}", instructions.clone());
-        let inner = instructions.into_vec();
+        let inner = instructions.into();
         let mut runtime = VirtualMachine::new(inner);
-        let r = runtime.exec();
+        let r = runtime.exec(false);
         println!("{:?},{:?}\n\n-------", r, res);
     }
 }

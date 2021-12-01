@@ -16,7 +16,6 @@ pub mod alu {
 
 pub mod op {
 
-
     use super::class::*;
 
     // masks
@@ -173,6 +172,7 @@ pub mod op {
 }
 
 pub const DEFAULT_STACK_SIZE: usize = 4096;
+pub const DEFAULT_INS_NUM: usize = 4096;
 
 #[test]
 fn t1() {

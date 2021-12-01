@@ -1,7 +1,5 @@
-mod asm_parser;
 #[allow(dead_code)]
 mod assemble;
-mod disassemble;
 mod ebpf;
 mod error;
 mod jit;
@@ -11,7 +9,7 @@ pub mod utils;
 use std::collections::HashMap;
 
 // pub use assemble::*;
-pub use asm_parser::{ident, instruction, instructions, integer, operand, operands, register};
+pub use assemble::{ident, instruction, instructions, integer, operand, operands, register};
 pub use ebpf::{alu, class, op};
 pub use error::ElfError;
 pub use instruction::{Instruction, Instructions};
