@@ -1,10 +1,9 @@
 use structopt::StructOpt;
 
 mod error;
-mod utils;
 mod runtime;
+mod utils;
 pub use runtime::*;
-pub use utils::*;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "example", about = "An example of StructOpt usage.")]

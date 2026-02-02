@@ -184,10 +184,10 @@ fn encode(
 ) -> Result<Instruction, ParseError> {
     let (a, b, c) = (operands_tuple(operands)).unwrap();
     match (inst_type, a, b, c) {
-        (InstructionType::AluBinary, Operand::Register(dst), Operand::Register(src), Nil) => {
+        (InstructionType::AluBinary, Operand::Register(dst), Operand::Register(src), Operand::Nil) => {
             insn(opc | op::EBPF_SRC_REG, dst, src, 0, 0)
         }
-        (InstructionType::AluBinary, Operand::Register(dst), Operand::Integer(imm), Nil) => {
+        (InstructionType::AluBinary, Operand::Register(dst), Operand::Integer(imm), Operand::Nil) => {
             insn(opc | op::EBPF_SRC_IMM, dst, 0, 0, imm)
         }
         (InstructionType::AluUnary, Operand::Register(dst), Operand::Nil, Operand::Nil) => {
