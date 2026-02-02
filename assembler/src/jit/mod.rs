@@ -54,7 +54,7 @@ impl JitBuilder {
 
     #[inline(always)]
     pub fn emit2(&mut self, val: u16) {
-        let buffer: [u8; 2] = unsafe { std::mem::transmute(val) };
+        let buffer: [u8; 2] = u16::to_ne_bytes(val);
         self.buffer.put_u8(buffer[0]);
         self.buffer.put_u8(buffer[1]);
         self.offset += 2;
@@ -62,7 +62,7 @@ impl JitBuilder {
 
     #[inline(always)]
     pub fn emit4(&mut self, val: u32) {
-        let buffer: [u8; 4] = unsafe { std::mem::transmute(val) };
+        let buffer: [u8; 4] = u32::to_ne_bytes(val);
         // if buffer[3] == 0 && buffer[2] == 0 && buffer[1] == 0 {
         //     self.buffer.put_u8(buffer[0]);
         //     return;
@@ -76,7 +76,7 @@ impl JitBuilder {
 
     #[inline(always)]
     pub fn emit8(&mut self, val: u64) {
-        let buffer: [u8; 8] = unsafe { std::mem::transmute(val) };
+        let buffer: [u8; 8] = u64::to_ne_bytes(val);
         self.buffer.put_u8(buffer[0]);
         self.buffer.put_u8(buffer[1]);
         self.buffer.put_u8(buffer[2]);
