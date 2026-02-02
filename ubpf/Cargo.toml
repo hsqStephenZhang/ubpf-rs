@@ -1,6 +1,6 @@
 [package]
 name = "ubpf"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,4 +8,4 @@ edition = "2024"
 [dependencies]
 structopt = "0.3"
 thiserror = "2.0"
-assembler = {path = "../assembler"}
+assembler = { version = "0.2.0", path = "../assembler" }
