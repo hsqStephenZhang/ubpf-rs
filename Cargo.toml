@@ -1,7 +1,7 @@
 [package]
 name = "ubpf-rs"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["2250015961@qq.com"]
 description = "A ebpf virtual machine written in rust"
 license = "MIT"

@@ -2,12 +2,12 @@ mod translator;
 pub mod utils;
 
 pub use translator::{
-    translate, R10, R11, R12, R13, R14, R15, R8, R9, RBP, RBX, RCX, RDI, RDX, RSI, RSP,
+    R8, R9, R10, R11, R12, R13, R14, R15, RBP, RBX, RCX, RDI, RDX, RSI, RSP, translate,
 };
 
-use bytes::{BufMut, BytesMut};
-use crate::ebpf::DEFAULT_INS_NUM;
 use self::translator::RAX;
+use crate::ebpf::DEFAULT_INS_NUM;
+use bytes::{BufMut, BytesMut};
 
 #[derive(Debug, Clone)]
 pub enum OperandSize {
@@ -119,7 +119,7 @@ impl JitBuilder {
     #[inline(always)]
     pub fn emit_push(&mut self, r: i32) {
         self.emit_basic_rex(0, 0, r); // w=0, src=0, dst=r
-                                      // 0x5X, X is the register
+        // 0x5X, X is the register
         self.emit1(0x50 | (r & 7) as u8);
     }
 
@@ -325,9 +325,5 @@ impl JitBuilder {
 
 #[inline(always)]
 fn bit01(val: i32) -> i32 {
-    if val & 8 == 0 {
-        0
-    } else {
-        1
-    }
+    if val & 8 == 0 { 0 } else { 1 }
 }

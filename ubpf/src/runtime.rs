@@ -1,4 +1,4 @@
-use assembler::{translate, Instruction};
+use assembler::{Instruction, translate};
 
 use crate::error::VmError;
 
@@ -563,7 +563,7 @@ bounds_check(const struct ubpf_vm *vm, void *addr, int size, const char *type, u
 mod tests {
 
     use super::*;
-    use crate::test_utils;
+    use crate::utils::test_utils;
 
     #[test]
     fn test_sign_extend() {

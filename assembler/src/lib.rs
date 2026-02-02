@@ -2,8 +2,8 @@
 mod assemble;
 mod ebpf;
 mod error;
-mod jit;
 mod instruction;
+mod jit;
 pub mod utils;
 
 use std::collections::HashMap;

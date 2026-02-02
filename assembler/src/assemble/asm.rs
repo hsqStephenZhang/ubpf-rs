@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    class,
-    error::ParseError,
-    op, Instruction,
-};
+use crate::{Instruction, class, error::ParseError, op};
 
 use super::{Operand, instructions};
 
@@ -184,12 +180,18 @@ fn encode(
 ) -> Result<Instruction, ParseError> {
     let (a, b, c) = (operands_tuple(operands)).unwrap();
     match (inst_type, a, b, c) {
-        (InstructionType::AluBinary, Operand::Register(dst), Operand::Register(src), Operand::Nil) => {
-            insn(opc | op::EBPF_SRC_REG, dst, src, 0, 0)
-        }
-        (InstructionType::AluBinary, Operand::Register(dst), Operand::Integer(imm), Operand::Nil) => {
-            insn(opc | op::EBPF_SRC_IMM, dst, 0, 0, imm)
-        }
+        (
+            InstructionType::AluBinary,
+            Operand::Register(dst),
+            Operand::Register(src),
+            Operand::Nil,
+        ) => insn(opc | op::EBPF_SRC_REG, dst, src, 0, 0),
+        (
+            InstructionType::AluBinary,
+            Operand::Register(dst),
+            Operand::Integer(imm),
+            Operand::Nil,
+        ) => insn(opc | op::EBPF_SRC_IMM, dst, 0, 0, imm),
         (InstructionType::AluUnary, Operand::Register(dst), Operand::Nil, Operand::Nil) => {
             insn(opc, dst, 0, 0, 0)
         }

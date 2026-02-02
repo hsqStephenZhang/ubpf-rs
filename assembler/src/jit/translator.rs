@@ -1,4 +1,4 @@
-use crate::{class::EBPF_CLS_ALU64, ebpf::DEFAULT_STACK_SIZE, op::*, Instruction, JitBuilder};
+use crate::{Instruction, JitBuilder, class::EBPF_CLS_ALU64, ebpf::DEFAULT_STACK_SIZE, op::*};
 
 pub const RAX: i32 = 0;
 pub const RCX: i32 = 1;
@@ -598,7 +598,7 @@ mod tests {
         let mem = unsafe { std::mem::transmute(raw.as_slice()) };
         test_suite("ldxdw", mem);
     }
-    
+
     #[test]
     fn test_ldx() {
         let raw: [u8; 12] = [

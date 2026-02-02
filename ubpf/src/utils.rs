@@ -22,7 +22,7 @@ pub mod test_utils {
 
         let instructions = Instructions::from_asm(&instructions_content).unwrap();
 
-        let (_,val)=integer(result).unwrap();
+        let (_, val) = integer(result).unwrap();
 
         (instructions, val)
     }

@@ -55,8 +55,8 @@ pub fn lookup_function<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, El
 
 #[cfg(test)]
 mod tests {
-    use crate::assemble::locate_function;
     use crate::Instructions;
+    use crate::assemble::locate_function;
     use goblin::Object;
     use std::fs;
     use std::path::Path;

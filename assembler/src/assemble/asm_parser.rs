@@ -1,11 +1,11 @@
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::{alphanumeric1, digit1, hex_digit1, space0},
     combinator::opt,
     multi::{separated_list0, separated_list1},
     sequence::{delimited, tuple},
-    IResult, Parser,
 };
 
 // combine::stream::state::Stream
@@ -318,7 +318,7 @@ mod tests {
                 "",
                 vec![Instruction {
                     name: "lddw".to_string(),
-                    operands: Some(vec![Operand::Register(0),Operand::Integer(0x10000000c)]),
+                    operands: Some(vec![Operand::Register(0), Operand::Integer(0x10000000c)]),
                 }]
             ))
         );
