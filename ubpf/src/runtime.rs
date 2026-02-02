@@ -223,19 +223,19 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] += reg[ins.src_reg() as usize];
                 }
                 SUB64_IMM => {
-                    reg[ins.dst_reg() as usize] -= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] -= ins.imm;
                 }
                 SUB64_REG => {
                     reg[ins.dst_reg() as usize] -= reg[ins.src_reg() as usize];
                 }
                 MUL64_IMM => {
-                    reg[ins.dst_reg() as usize] *= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] *= ins.imm;
                 }
                 MUL64_REG => {
                     reg[ins.dst_reg() as usize] *= reg[ins.src_reg() as usize];
                 }
                 DIV64_IMM => {
-                    reg[ins.dst_reg() as usize] /= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] /= ins.imm;
                 }
                 DIV64_REG => {
                     if reg[ins.src_reg() as usize] == 0 {
@@ -244,25 +244,25 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] /= reg[ins.src_reg() as usize];
                 }
                 OR64_IMM => {
-                    reg[ins.dst_reg() as usize] |= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] |= ins.imm;
                 }
                 OR64_REG => {
                     reg[ins.dst_reg() as usize] |= reg[ins.src_reg() as usize];
                 }
                 AND64_IMM => {
-                    reg[ins.dst_reg() as usize] &= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] &= ins.imm;
                 }
                 AND64_REG => {
                     reg[ins.dst_reg() as usize] &= reg[ins.src_reg() as usize];
                 }
                 LSH64_IMM => {
-                    reg[ins.dst_reg() as usize] <<= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] <<= ins.imm;
                 }
                 LSH64_REG => {
                     reg[ins.dst_reg() as usize] <<= reg[ins.src_reg() as usize];
                 }
                 RSH64_IMM => {
-                    reg[ins.dst_reg() as usize] >>= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] >>= ins.imm;
                 }
                 RSH64_REG => {
                     reg[ins.dst_reg() as usize] >>= reg[ins.src_reg() as usize];
@@ -271,26 +271,26 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] = -reg[ins.dst_reg() as usize];
                 }
                 MOD64_IMM => {
-                    reg[ins.dst_reg() as usize] %= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] %= ins.imm;
                 }
                 MOD64_REG => {
                     reg[ins.dst_reg() as usize] %= reg[ins.src_reg() as usize];
                 }
                 XOR64_IMM => {
-                    reg[ins.dst_reg() as usize] ^= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] ^= ins.imm;
                 }
                 XOR64_REG => {
                     reg[ins.dst_reg() as usize] ^= reg[ins.src_reg() as usize];
                 }
                 MOV64_IMM => {
-                    reg[ins.dst_reg() as usize] = ins.imm as i64;
+                    reg[ins.dst_reg() as usize] = ins.imm;
                 }
                 MOV64_REG => {
                     reg[ins.dst_reg() as usize] = reg[ins.src_reg() as usize];
                 }
                 ARSH64_IMM => {
                     let old = reg[ins.dst_reg() as usize];
-                    reg[ins.dst_reg() as usize] = old >> (ins.imm as i64);
+                    reg[ins.dst_reg() as usize] = old >> ins.imm;
                 }
                 ARSH64_REG => {
                     let old = reg[ins.dst_reg() as usize];
@@ -319,7 +319,7 @@ impl VirtualMachine {
                     // println!("ldxdw");
                     let addr = reg[ins.src_reg() as usize] + ins.offset as i64;
                     // dbg!(unsafe { *(addr as *const i64) as i64 });
-                    reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i64) as i64 };
+                    reg[ins.dst_reg() as usize] = unsafe { *(addr as *const i64) };
                 }
                 STW => {
                     let addr = reg[ins.dst_reg() as usize] + ins.offset as i64;
@@ -335,7 +335,7 @@ impl VirtualMachine {
                 }
                 STDW => {
                     let addr = reg[ins.dst_reg() as usize] + ins.offset as i64;
-                    unsafe { *(addr as *mut i64) = ins.imm as i64 };
+                    unsafe { *(addr as *mut i64) = ins.imm };
                 }
                 STXW => {
                     let addr = reg[ins.dst_reg() as usize] + ins.offset as i64;
@@ -357,7 +357,7 @@ impl VirtualMachine {
                     self.pc += ins.offset as i64;
                 }
                 JEQ_IMM => {
-                    if reg[ins.dst_reg() as usize] == ins.imm as i64 {
+                    if reg[ins.dst_reg() as usize] == ins.imm {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -367,7 +367,7 @@ impl VirtualMachine {
                     }
                 }
                 JGT_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm as i64 & U32_MASK) as u64 {
+                    if reg[ins.dst_reg() as usize] as u64 > (ins.imm & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -379,7 +379,7 @@ impl VirtualMachine {
                     }
                 }
                 JGE_IMM => {
-                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm as i64 & U32_MASK) as u64 {
+                    if reg[ins.dst_reg() as usize] as u64 >= (ins.imm & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -399,14 +399,14 @@ impl VirtualMachine {
                 }
                 JSET_IMM => {
                     let a = sign_extend(reg[ins.dst_reg() as usize]);
-                    let b = sign_extend(ins.imm as i64);
+                    let b = sign_extend(ins.imm);
                     if a & b != 0 {
                         self.pc += ins.offset as i64;
                     }
                 }
                 JSGT_IMM => {
                     let a = sign_extend(reg[ins.dst_reg() as usize]);
-                    let b = sign_extend(ins.imm as i64);
+                    let b = sign_extend(ins.imm);
                     if a > b {
                         self.pc += ins.offset as i64;
                     }
@@ -420,7 +420,7 @@ impl VirtualMachine {
                 }
                 JSGE_IMM => {
                     let a = sign_extend(reg[ins.dst_reg() as usize]);
-                    let b = sign_extend(ins.imm as i64);
+                    let b = sign_extend(ins.imm);
                     if a >= b {
                         self.pc += ins.offset as i64;
                     }
@@ -434,7 +434,7 @@ impl VirtualMachine {
                     }
                 }
                 JNE_IMM => {
-                    if reg[ins.dst_reg() as usize] != ins.imm as i64 {
+                    if reg[ins.dst_reg() as usize] != ins.imm {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -444,7 +444,7 @@ impl VirtualMachine {
                     }
                 }
                 JLT_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm as i64 & U32_MASK) as u64 {
+                    if (reg[ins.dst_reg() as usize] as u64) < (ins.imm & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -456,7 +456,7 @@ impl VirtualMachine {
                     }
                 }
                 JLE_IMM => {
-                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm as i64 & U32_MASK) as u64 {
+                    if (reg[ins.dst_reg() as usize] as u64) <= (ins.imm & U32_MASK) as u64 {
                         self.pc += ins.offset as i64;
                     }
                 }
@@ -469,7 +469,7 @@ impl VirtualMachine {
                 }
                 JSLT_IMM => {
                     let a = sign_extend(reg[ins.dst_reg() as usize]);
-                    let b = sign_extend(ins.imm as i64);
+                    let b = sign_extend(ins.imm);
                     dbg!(a, b);
                     if a < b {
                         self.pc += ins.offset as i64;
@@ -485,7 +485,7 @@ impl VirtualMachine {
                 }
                 JSLE_IMM => {
                     let a = sign_extend(reg[ins.dst_reg() as usize]);
-                    let b = sign_extend(ins.imm as i64);
+                    let b = sign_extend(ins.imm);
                     if a <= b {
                         self.pc += ins.offset as i64;
                     }
@@ -514,7 +514,6 @@ impl VirtualMachine {
     #[inline(always)]
     pub fn bound_check(&self) {
         if !self.memory_bound_check {
-            return;
         }
     }
 }
