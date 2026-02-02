@@ -319,13 +319,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ubpf-rs"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
