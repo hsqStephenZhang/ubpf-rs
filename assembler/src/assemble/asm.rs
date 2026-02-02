@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{Instruction, class, error::ParseError, op};
-
 use super::{Operand, instructions};
+use crate::{Instruction, class, error::ParseError, op};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum InstructionType {
@@ -261,15 +260,15 @@ fn encode(
 }
 
 fn insn(op: u8, dst: i64, src: i64, off: i64, imm: i64) -> Result<Instruction, ParseError> {
-    if dst < 0 || dst >= 16 {
+    if !(0..16).contains(&dst) {
         return Err(ParseError::InvalidDst(dst));
     }
 
-    if src < 0 || src >= 16 {
+    if !(0..16).contains(&src) {
         return Err(ParseError::InvalidSrc(src));
     }
 
-    if off < -32768 || off >= 32768 {
+    if !(-32768..32768).contains(&off) {
         return Err(ParseError::InvalidOffset(off));
     }
 

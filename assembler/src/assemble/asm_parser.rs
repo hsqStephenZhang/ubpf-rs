@@ -56,8 +56,8 @@ pub fn integer(input: &str) -> IResult<&str, i64> {
             Some("-") => -1,
             _ => 1,
         };
-        let val = if prefix.len() == 0 {
-            u64::from_str_radix(d, 10).unwrap()
+        let val = if prefix.is_empty() {
+            d.parse::<u64>().unwrap()
         } else {
             u64::from_str_radix(d, 16).unwrap()
         };
@@ -68,7 +68,7 @@ pub fn integer(input: &str) -> IResult<&str, i64> {
 
 pub fn register(input: &str) -> IResult<&str, i64> {
     let mut pattern = tuple((tag("r"), digit1));
-    pattern(input).map(|(next_input, (_, d))| (next_input, i64::from_str_radix(d, 10).unwrap()))
+    pattern(input).map(|(next_input, (_, d))| (next_input, d.parse::<i64>().unwrap()))
 }
 
 pub fn operand(input: &str) -> IResult<&str, Operand> {
@@ -79,8 +79,7 @@ pub fn operand(input: &str) -> IResult<&str, Operand> {
         .map(|(a, b)| Operand::Memory(a, b.unwrap_or(0)));
     let mut pattern = register_operand.or(immediate).or(memory);
 
-    let r = pattern.parse(input);
-    r
+    pattern.parse(input)
 }
 
 pub fn operands(s: &str) -> IResult<&str, Vec<Operand>> {

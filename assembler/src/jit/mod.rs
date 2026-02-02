@@ -1,13 +1,13 @@
 mod translator;
 pub mod utils;
 
+use bytes::{BufMut, BytesMut};
 pub use translator::{
     R8, R9, R10, R11, R12, R13, R14, R15, RBP, RBX, RCX, RDI, RDX, RSI, RSP, translate,
 };
 
 use self::translator::RAX;
 use crate::ebpf::DEFAULT_INS_NUM;
-use bytes::{BufMut, BytesMut};
 
 #[derive(Debug, Clone)]
 pub enum OperandSize {
@@ -35,6 +35,12 @@ pub struct JitBuilder {
 }
 
 // TODO: big endian CS small endian
+impl Default for JitBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JitBuilder {
     pub fn new() -> JitBuilder {
         Self {
@@ -91,9 +97,10 @@ impl JitBuilder {
     #[allow(unused_variables)]
     #[inline(always)]
     pub fn emit_jump_offset(&mut self, target_pc: i32) {
-        let mut jmp = Jmp::default();
-        jmp.offset_location = self.offset;
-        jmp.target_pc = target_pc;
+        let jmp = Jmp {
+            offset_location: self.offset,
+            target_pc,
+        };
         self.jumps.push(jmp);
         self.emit4(0); // jmp place holder
     }
@@ -238,11 +245,8 @@ impl JitBuilder {
 
     #[inline(always)]
     pub fn emit_store(&mut self, size: OperandSize, src: i32, dst: i32, offset: i32) {
-        match size {
-            OperandSize::S16 => {
-                self.emit1(0x66);
-            }
-            _ => {}
+        if let OperandSize::S16 = size {
+            self.emit1(0x66);
         }
         let rexw = match size {
             OperandSize::S64 => 1,
@@ -299,7 +303,7 @@ impl JitBuilder {
     pub fn emit_modrm_and_displacement(&mut self, r: i32, m: i32, d: i32) {
         if d == 0 && (m & 7) != RBP {
             self.emit_modrm(0x00, r, m);
-        } else if d >= -128 && d <= 127 {
+        } else if (-128..=127).contains(&d) {
             self.emit_modrm(0x40, r, m);
             self.emit1(d as u8);
         } else {

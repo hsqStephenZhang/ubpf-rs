@@ -93,31 +93,31 @@ impl VirtualMachine {
                 LDDW => {
                     let new_ins = self.instructions[self.pc as usize];
                     self.pc += 1;
-                    let imm_high = (new_ins.imm as i64) << 32;
-                    reg[ins.dst_reg() as usize] = ins.imm as i64 | imm_high;
+                    let imm_high = new_ins.imm << 32;
+                    reg[ins.dst_reg() as usize] = ins.imm | imm_high;
                 }
                 ADD_IMM => {
-                    reg[ins.dst_reg() as usize] += ins.imm as i64;
+                    reg[ins.dst_reg() as usize] += ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 ADD_REG => {
-                    reg[ins.dst_reg() as usize] += reg[ins.src_reg() as usize] as i64;
+                    reg[ins.dst_reg() as usize] += reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 SUB_IMM => {
-                    reg[ins.dst_reg() as usize] -= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] -= ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 SUB_REG => {
-                    reg[ins.dst_reg() as usize] -= reg[ins.src_reg() as usize] as i64;
+                    reg[ins.dst_reg() as usize] -= reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 MUL_IMM => {
-                    reg[ins.dst_reg() as usize] *= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] *= ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 MUL_REG => {
-                    reg[ins.dst_reg() as usize] *= reg[ins.src_reg() as usize] as i64;
+                    reg[ins.dst_reg() as usize] *= reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 DIV_IMM => {
@@ -131,42 +131,42 @@ impl VirtualMachine {
                         return Err(VmError::DivZero);
                     }
                     reg[ins.dst_reg() as usize] &= U32_MASK;
-                    reg[ins.dst_reg() as usize] /= (reg[ins.src_reg() as usize] as i64) & U32_MASK;
+                    reg[ins.dst_reg() as usize] /= reg[ins.src_reg() as usize] & U32_MASK;
                 }
                 OR_IMM => {
-                    reg[ins.dst_reg() as usize] |= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] |= ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 OR_REG => {
-                    reg[ins.dst_reg() as usize] |= reg[ins.src_reg() as usize] as i64;
+                    reg[ins.dst_reg() as usize] |= reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 AND_IMM => {
-                    reg[ins.dst_reg() as usize] &= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] &= ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 AND_REG => {
-                    reg[ins.dst_reg() as usize] &= reg[ins.src_reg() as usize] as i64;
+                    reg[ins.dst_reg() as usize] &= reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 LSH_IMM => {
                     let old = reg[ins.dst_reg() as usize] & U32_MASK;
-                    reg[ins.dst_reg() as usize] = old << ins.imm as i64;
+                    reg[ins.dst_reg() as usize] = old << ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 LSH_REG => {
                     let old = reg[ins.dst_reg() as usize] & U32_MASK;
-                    reg[ins.dst_reg() as usize] = old << (reg[ins.src_reg() as usize] as i64);
+                    reg[ins.dst_reg() as usize] = old << reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 RSH_IMM => {
                     let old = reg[ins.dst_reg() as usize] & U32_MASK;
-                    reg[ins.dst_reg() as usize] = old >> ins.imm as i64;
+                    reg[ins.dst_reg() as usize] = old >> ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 RSH_REG => {
                     let old = reg[ins.dst_reg() as usize] & U32_MASK;
-                    reg[ins.dst_reg() as usize] = old >> (reg[ins.src_reg() as usize] as i64);
+                    reg[ins.dst_reg() as usize] = old >> reg[ins.src_reg() as usize];
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 NEG32 => {
@@ -175,7 +175,7 @@ impl VirtualMachine {
                 }
                 MOD_IMM => {
                     let a = reg[ins.dst_reg() as usize] & U32_MASK;
-                    let b = ins.imm as i64 & U32_MASK;
+                    let b = ins.imm & U32_MASK;
                     let r = a % b;
                     reg[ins.dst_reg() as usize] = r & U32_MASK;
                 }
@@ -186,7 +186,7 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] = r & U32_MASK;
                 }
                 XOR_IMM => {
-                    reg[ins.dst_reg() as usize] ^= ins.imm as i64;
+                    reg[ins.dst_reg() as usize] ^= ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 XOR_REG => {
@@ -194,7 +194,7 @@ impl VirtualMachine {
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 MOV_IMM => {
-                    reg[ins.dst_reg() as usize] = ins.imm as i64;
+                    reg[ins.dst_reg() as usize] = ins.imm;
                     reg[ins.dst_reg() as usize] &= U32_MASK;
                 }
                 MOV_REG => {
@@ -217,7 +217,7 @@ impl VirtualMachine {
                     todo!()
                 }
                 ADD64_IMM => {
-                    reg[ins.dst_reg() as usize] += ins.imm as i64;
+                    reg[ins.dst_reg() as usize] += ins.imm;
                 }
                 ADD64_REG => {
                     reg[ins.dst_reg() as usize] += reg[ins.src_reg() as usize];
@@ -528,7 +528,7 @@ pub fn sign_extend(origin: i64) -> i64 {
     origin & 0x00000000ffffffff
 }
 
-/**
+/*
  *
 #define BOUNDS_CHECK_LOAD(size) \
     do { \

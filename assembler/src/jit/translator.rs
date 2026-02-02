@@ -22,7 +22,7 @@ pub const REGISTER_MAP: [i32; 11] = [RAX, RDI, RSI, RDX, R9, R8, RBX, R13, R14, 
 const TARGET_PC_EXIT: i32 = -1;
 const TARGET_PC_DIV_BY_ZERO: i32 = -2;
 
-pub fn translate(inner: &Vec<Instruction>) -> Vec<u8> {
+pub fn translate(inner: &[Instruction]) -> Vec<u8> {
     let mut builder = JitBuilder::new();
 
     // save stack frame
@@ -483,12 +483,16 @@ fn muldivmod_nop(builder: &mut JitBuilder, opcode: u8, src: i32, dst: i32, imm: 
 #[cfg(test)]
 mod tests {
     use super::translate;
-    use crate::jit::utils::{display, test_utils::load_data};
+    use crate::{
+        Instruction,
+        jit::utils::{display, test_utils::load_data},
+    };
 
     #[allow(dead_code)]
     fn test_translate(prog_name: &str) {
         let (instructions, res) = load_data(prog_name);
-        let r = translate(&instructions.into());
+        let v: Vec<Instruction> = instructions.into();
+        let r = translate(&v);
         display(&r);
         println!("----\nres:{:?}\n\n", res);
     }
@@ -499,12 +503,13 @@ mod tests {
     const PAGE_SIZE: usize = 4096;
 
     pub fn page_align(n: usize) -> usize {
-        return (n + (PAGE_SIZE - 1)) & !(PAGE_SIZE - 1);
+        (n + (PAGE_SIZE - 1)) & !(PAGE_SIZE - 1)
     }
 
     fn test_suite(prog_name: &str, memory: (*const u8, usize)) {
         let (instructions, res) = load_data(prog_name);
-        let r = translate(&instructions.into());
+        let v: Vec<Instruction> = instructions.into();
+        let r = translate(&v);
         display(&r);
         let size = page_align(r.len());
         unsafe {
@@ -517,7 +522,8 @@ mod tests {
                 0,
             );
 
-            let (src, slen) = std::mem::transmute(r.as_bytes());
+            let (src, slen) =
+                std::mem::transmute::<&[u8], (*const libc::c_void, usize)>(r.as_bytes());
             std::ptr::copy(src, fn_base, slen);
 
             let f: fn(*const u8, usize) -> i64 = std::mem::transmute(fn_base);
@@ -581,21 +587,21 @@ mod tests {
     #[test]
     fn test_memory() {
         let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("ldxw", mem);
 
         let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("ldxh", mem);
 
         let raw: [u8; 8] = [0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0xcc, 0xdd];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("ldxb", mem);
 
         let raw: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("ldxdw", mem);
     }
 
@@ -604,25 +610,25 @@ mod tests {
         let raw: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("stxw", mem);
 
         let raw: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("stxh", mem);
 
         let raw: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("stxb", mem);
 
         let raw: [u8; 12] = [
             0xaa, 0xbb, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xcc, 0xdd,
         ];
-        let mem = unsafe { std::mem::transmute(raw.as_slice()) };
+        let mem = unsafe { std::mem::transmute::<&[u8], (*const u8, usize)>(raw.as_slice()) };
         test_suite("stxdw", mem);
     }
 }

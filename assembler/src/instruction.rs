@@ -86,7 +86,7 @@ impl From<&[u8]> for Instruction {
                 assert!(bytes.len() >= 16);
                 let mut tmp = 0;
                 std::ptr::copy(src as *const u8, &mut tmp as *mut _ as _, 4);
-                imm = ((tmp as i64) << 32) | imm;
+                imm |= (tmp as i64) << 32;
             }
         }
 
@@ -113,16 +113,16 @@ impl std::fmt::Debug for Instruction {
             match opcode {
                 alu::END => {
                     let opcode_name = if source == 1 { "be" } else { "le" };
-                    return write!(f, "{}{} {}", opcode_name, self.imm, reg(self.dst_reg()));
+                    write!(f, "{}{} {}", opcode_name, self.imm, reg(self.dst_reg()))
                 }
                 alu::NEG => {
-                    return write!(f, "{} {}", opcode_name, reg(dst));
+                    write!(f, "{} {}", opcode_name, reg(dst))
                 }
                 _ => {
                     if source == 0 {
-                        return write!(f, "{} {}, {}", opcode_name, reg(dst), self.imm,);
+                        write!(f, "{} {}, {}", opcode_name, reg(dst), self.imm,)
                     } else {
-                        return write!(f, "{} {}, {}", opcode_name, reg(dst), reg(src),);
+                        write!(f, "{} {}, {}", opcode_name, reg(dst), reg(src),)
                     }
                 }
             }
@@ -131,28 +131,28 @@ impl std::fmt::Debug for Instruction {
             let opcode = self.opcode(); // 0x11110000
             let opcode_name = *crate::JMP_OPCODES_TO_NAME.get(&opcode).unwrap();
             match opcode_name {
-                "exit" => return write!(f, "{}", opcode_name),
-                "call" => return write!(f, "{} {}", opcode_name, self.imm),
-                "ja" => return write!(f, "{} {}", opcode_name, self.offset),
+                "exit" => write!(f, "{}", opcode_name),
+                "call" => write!(f, "{} {}", opcode_name, self.imm),
+                "ja" => write!(f, "{} {}", opcode_name, self.offset),
                 _ => {
                     if source == 0 {
-                        return write!(
+                        write!(
                             f,
                             "{} {},{}, {}",
                             opcode_name,
                             reg(dst),
                             self.imm,
                             self.offset
-                        );
+                        )
                     } else {
-                        return write!(
+                        write!(
                             f,
                             "{} {},{}, {}",
                             opcode_name,
                             reg(dst),
                             src as i64,
                             self.offset
-                        );
+                        )
                     }
                 }
             }
@@ -228,9 +228,9 @@ impl Instructions {
     }
 }
 
-impl Into<Vec<Instruction>> for Instructions {
-    fn into(self) -> Vec<Instruction> {
-        self.inner
+impl From<Instructions> for Vec<Instruction> {
+    fn from(val: Instructions) -> Self {
+        val.inner
     }
 }
 
@@ -272,7 +272,7 @@ impl From<Vec<Instruction>> for Instructions {
 impl std::fmt::Debug for Instructions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (index, ins) in self.inner.iter().enumerate() {
-            write!(f, "{}:{:?}\n", index, ins)?
+            writeln!(f, "{}:{:?}", index, ins)?
         }
         Ok(())
     }

@@ -42,8 +42,7 @@ pub fn display(bytes: &[u8]) {
 #[cfg(test)]
 pub mod test_utils {
 
-    use std::fs;
-    use std::path::Path;
+    use std::{fs, path::Path};
 
     use crate::{Instructions, integer};
 

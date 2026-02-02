@@ -1,6 +1,6 @@
-use goblin::elf::Elf;
-use goblin::elf64::sym::STT_FUNC;
 use std::ops::Range;
+
+use goblin::{elf::Elf, elf64::sym::STT_FUNC};
 
 use crate::ElfError;
 
@@ -22,13 +22,10 @@ pub fn lookup_section<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, Elf
         let sh_name = header.sh_name;
         let name = elf.shdr_strtab.get_at(sh_name);
         println!("{:?}", name);
-        match name {
-            Some(r) => {
-                if r == target_name {
-                    return Ok(index);
-                }
-            }
-            None => {}
+        if let Some(r) = name
+            && r == target_name
+        {
+            return Ok(index);
         }
     }
     Err(ElfError::SectionNotFound(target_name.into()))
@@ -41,13 +38,10 @@ pub fn lookup_function<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, El
         }
         let st_name = s.st_name;
         let name = elf.strtab.get_at(st_name);
-        match name {
-            Some(r) => {
-                if r == target_name {
-                    return Ok(index);
-                }
-            }
-            None => {}
+        if let Some(r) = name
+            && r == target_name
+        {
+            return Ok(index);
         }
     }
     Err(ElfError::FunctionNotFound(target_name.into()))
@@ -55,11 +49,11 @@ pub fn lookup_function<'a>(elf: &Elf<'a>, target_name: &str) -> Result<usize, El
 
 #[cfg(test)]
 mod tests {
-    use crate::Instructions;
-    use crate::assemble::locate_function;
+    use std::{fs, path::Path};
+
     use goblin::Object;
-    use std::fs;
-    use std::path::Path;
+
+    use crate::{Instructions, assemble::elf::locate_function};
 
     #[test]
     fn t1() {

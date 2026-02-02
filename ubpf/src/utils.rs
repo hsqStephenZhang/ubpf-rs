@@ -1,10 +1,9 @@
 #[cfg(test)]
 pub mod test_utils {
 
-    use assembler::Instructions;
-    use assembler::integer;
-    use std::fs;
-    use std::path::Path;
+    use std::{fs, path::Path};
+
+    use assembler::{Instructions, integer};
 
     pub fn load_data(name: &str) -> (Instructions, i64) {
         let name1 = format!("../data/{}.data", name);
